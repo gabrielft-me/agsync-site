@@ -87,14 +87,14 @@
 * { border-color: var(--color-line); }
 
 /* One frame for header, content and footer, so all three share an edge.
-   320 + 80 gutter + 900 terminal = 1300. Past that the group centres rather
+   320 + 128 gutter + 900 terminal = 1348. Past that the group centres rather
    than letting the right margin grow. */
 .frame {
-  width: min(100% - 48px, 1300px);
+  width: min(100% - 48px, 1348px);
   margin-inline: auto;
 }
 @media (min-width: 1024px) {
-  .frame { width: min(100% - 160px, 1300px); }
+  .frame { width: min(100% - 160px, 1348px); }
 }
 
 html {
