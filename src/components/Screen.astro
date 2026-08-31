@@ -43,12 +43,14 @@ const views = [
       agent(byId("check-rot")),
     ],
   },
-  { kind: "run" as const, label: "Rarer than you’d think", steps: [agent(byId("check-clean"))] },
-  { kind: "run" as const, label: "Fourteen ways to be wrong", steps: [agent(byId("rules"))] },
-  { kind: "run" as const, label: "Every commit you’ve ever pushed, judged", steps: [agent(byId("replay"))] },
-  { kind: "run" as const, label: "How long nobody noticed", steps: [agent(byId("first-seen"))] },
-  { kind: "run" as const, label: "The part people uninstall", steps: [agent(byId("gate"))] },
-  { kind: "run" as const, label: "Start from nothing", steps: [agent(byId("init"))] },
+  // The rest are you at your own terminal, so they keep the `$`. The glitch
+  // mark is rare on purpose: it only means something while it is the exception.
+  { kind: "run" as const, label: "Rarer than you’d think", steps: [human(byId("check-clean"))] },
+  { kind: "run" as const, label: "Fourteen ways to be wrong", steps: [human(byId("rules"))] },
+  { kind: "run" as const, label: "Every commit you’ve ever pushed, judged", steps: [human(byId("replay"))] },
+  { kind: "run" as const, label: "How long nobody noticed", steps: [human(byId("first-seen"))] },
+  { kind: "run" as const, label: "The part people uninstall", steps: [human(byId("gate"))] },
+  { kind: "run" as const, label: "Start from nothing", steps: [human(byId("init"))] },
   { kind: "outro" as const, label: outro.label, steps: [] as Step[] },
 ];
 
@@ -301,7 +303,18 @@ const pad = (n: number) => String(n).padStart(2, "0");
                         hidden={st.install ? k !== 0 : undefined}
                         class:list={["step", k > 0 && "mt-6"]}
                       >
-                        <p class="term-line"><span class="text-accent">$ </span><span
+                        <p class="term-line">{st.typist === "agent" ? (
+                            <Fragment>
+                              <span class="agent-mark" aria-hidden="true">
+                                {["▛", "▜", "▟", "▙", "▚", "▞"].map((g) => (
+                                  <span>{g}</span>
+                                ))}
+                              </span>
+                              <span> </span>
+                            </Fragment>
+                          ) : (
+                            <span class="text-accent">$ </span>
+                          )}<span
                             data-cmd={st.scene.command}
                             data-plan={keystrokes(st)}
                             class="text-fg"
@@ -537,22 +550,54 @@ const pad = (n: number) => String(n).padStart(2, "0");
       const steps = [...body.querySelectorAll<HTMLElement>("[data-step]")].filter(
         (el) => !el.hidden,
       );
+      if (!steps.length) return done();
+      const tabs = body.querySelector<HTMLElement>(".install-tabs");
+
+      // One command on screen at a time: the window is cleared between them,
+      // the way you clear it yourself before handing it to something else.
+      const only = (k: number) => {
+        steps.forEach((step, j) => {
+          step.toggleAttribute("data-off", j !== k);
+          step.removeAttribute("data-fading");
+        });
+        tabs?.toggleAttribute("data-off", k !== 0);
+      };
+
+      if (!animate) {
+        // Cleared, so what is left is whatever ran last.
+        only(steps.length - 1);
+        for (const step of steps) {
+          typeCommand(step, false);
+          printOutput(step, false, () => {});
+        }
+        return done();
+      }
+
       let i = 0;
       const next = () => {
         const step = steps[i++];
         if (!step) return done();
 
         const start = () => {
-          // The window changes hands here. It stays changed for the rest of
+          only(i - 1);
+          // The window changes hands here, and stays changed for the rest of
           // the scene: what is driving it did not hand it back.
           if (step.dataset.typist === "agent") panel.dataset.typist = "agent";
-          typeCommand(step, animate, () => printOutput(step, animate, next));
+          typeCommand(step, true, () => printOutput(step, true, next));
         };
 
-        // Long enough after the last output that the next command reads as a
-        // second thing happening, not a continuation of the first.
-        if (animate && i > 1) printTimer = window.setTimeout(start, 900);
-        else start();
+        if (i > 1) {
+          // Let the output stand long enough to be read, then clear, then sit
+          // on an empty window for a moment — so what follows reads as a second
+          // thing happening rather than a continuation of the first.
+          const previous = steps[i - 2]!;
+          printTimer = window.setTimeout(() => {
+            previous.setAttribute("data-fading", "");
+            printTimer = window.setTimeout(start, 680); // 260ms fade, then empty
+          }, 1400);
+        } else {
+          start();
+        }
       };
       next();
     };

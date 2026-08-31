@@ -609,3 +609,43 @@ html[data-app] body {
   background: color-mix(in srgb, var(--color-accent) 7%, var(--color-terminal));
 }
 .panel { transition-property: border-color, box-shadow, background-color; }
+
+/* Clearing the window between commands. */
+[data-step],
+.install-tabs { transition: opacity 260ms ease-out; }
+[data-fading] { opacity: 0; }
+[data-off] { display: none; }
+
+/* The agent's prompt. Not a `$`, because nobody is at the keyboard, and not a
+   spinner, because nothing is loading — a single cell flickering between
+   states, in the accent that means agsync's own everywhere else. */
+.agent-mark {
+  position: relative;
+  display: inline-block;
+  width: 1ch;
+  text-align: center;
+  color: var(--color-accent);
+}
+
+.agent-mark > span {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  animation: agent-glitch 0.54s steps(1, end) infinite;
+}
+.agent-mark > span:nth-child(2) { animation-delay: 0.09s; }
+.agent-mark > span:nth-child(3) { animation-delay: 0.18s; }
+.agent-mark > span:nth-child(4) { animation-delay: 0.27s; }
+.agent-mark > span:nth-child(5) { animation-delay: 0.36s; }
+.agent-mark > span:nth-child(6) { animation-delay: 0.45s; }
+
+@keyframes agent-glitch {
+  0%, 16.66% { opacity: 1; }
+  16.67%, 100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Hold it on one state rather than flickering. */
+  .agent-mark > span { animation: none; opacity: 0; }
+  .agent-mark > span:first-child { opacity: 1; }
+}
