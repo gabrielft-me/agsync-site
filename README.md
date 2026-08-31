@@ -17,10 +17,13 @@ and ~3 KB of script inlined — no external JavaScript bundle.
 
 ## The output is captured, never written
 
-Scene 1 is the exception and says so: `src/data/tree.ts` is an authored
-illustration of a repository layout, drawn without a prompt or an exit code so
-it cannot be mistaken for the output of a command. The project in it is
-invented.
+Two scenes are the exception and say so. `src/data/tree.ts` is an authored
+illustration of a repository layout and `src/data/outro.ts` is prose; both are
+drawn without a prompt or an exit code so neither can be mistaken for the output
+of a command. The project in the tree is invented.
+
+`outro.ts` also holds `VENUE`, which is still the generic "a hackathon in San
+Francisco" — replace it with the event's actual name.
 
 Every other terminal block is what the CLI actually printed. To regenerate:
 
@@ -73,7 +76,7 @@ sips -s format png -c 630 1200 --cropOffset 0 0 shot.jpg --out public/og.png
 ```
 src/
   components/   Screen (the whole page), StarButton
-  data/         scenes.ts (generated — see above), tree.ts (authored)
+  data/         scenes.ts (generated — see above), tree.ts + outro.ts (authored)
   lib/          ansi.ts (SGR -> spans), trim.ts, github.ts
   pages/        index.astro, 404.astro, og.astro
   styles/       global.css (tokens, texture, app-mode mechanics)

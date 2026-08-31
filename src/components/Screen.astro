@@ -2,14 +2,17 @@
 import StarButton from "./StarButton.astro";
 import { scenes } from "../data/scenes";
 import { tree, treeLabel, treeTranscript } from "../data/tree";
+import { outro } from "../data/outro";
 import { toPlain } from "../lib/ansi";
 import { trim } from "../lib/trim";
 import { links } from "../config";
 
-// The tree is the resting state, so it is view 1 and the captured runs follow.
+// The tree is the resting state, so it is view 1; the captured runs follow,
+// and the closing prose takes the same window at the end.
 const views = [
-  { label: treeLabel, scene: null },
-  ...scenes.map((scene) => ({ label: scene.label, scene })),
+  { kind: "tree" as const, label: treeLabel, scene: null },
+  ...scenes.map((scene) => ({ kind: "run" as const, label: scene.label, scene })),
+  { kind: "outro" as const, label: outro.label, scene: null },
 ];
 const total = String(views.length).padStart(2, "0");
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -95,7 +98,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
                   <p data-label class="mt-1 text-[1.0625rem] text-fg">{v.label}</p>
                 </div>
 
-                {v.scene === null ? (
+                {v.kind === "tree" ? (
                   <div class="scene-body">
                     <div class="tree">
                       {tree.map((row) => (
@@ -138,20 +141,52 @@ const pad = (n: number) => String(n).padStart(2, "0");
                     </div>
                     <pre class="sr-only">{treeTranscript}</pre>
                   </div>
+                ) : v.kind === "outro" ? (
+                  <div class="scene-body scene-outro">
+                    <p class="outro-head">{outro.heading}</p>
+                    <p class="outro-rule" aria-hidden="true">{outro.rule}</p>
+                    <p class="outro-answer">{outro.answer}</p>
+
+                    <div class="outro-lines">
+                      {outro.lines.map((line) => (
+                        <p>{line}</p>
+                      ))}
+                    </div>
+
+                    <div class="outro-actions">
+                      <StarButton />
+                      <a
+                        href={links.goodFirstIssues}
+                        target="_blank"
+                        rel="noopener"
+                        class="outro-button"
+                      >
+                        Add a rule
+                      </a>
+                      <a
+                        href={links.readme}
+                        target="_blank"
+                        rel="noopener"
+                        class="outro-button"
+                      >
+                        Docs
+                      </a>
+                    </div>
+                  </div>
                 ) : (
-                  <div class="scene-body" data-exit-code={v.scene.exit}>
+                  <div class="scene-body" data-exit-code={v.scene!.exit}>
                     <p class="term-line">
                       <span class="text-accent">$ </span>
-                      <span data-cmd={v.scene.command} class="text-fg">
-                        {v.scene.command}
+                      <span data-cmd={v.scene!.command} class="text-fg">
+                        {v.scene!.command}
                       </span>
-                      {v.scene.note && (
-                        <span data-note class="text-subtle">   # {v.scene.note}</span>
+                      {v.scene!.note && (
+                        <span data-note class="text-subtle">   # {v.scene!.note}</span>
                       )}
                       <span data-caret class="caret" aria-hidden="true" />
                     </p>
                     <div class="mt-3">
-                      {trim(v.scene).map((row) =>
+                      {trim(v.scene!).map((row) =>
                         row.kind === "elision" ? (
                           <button
                             type="button"
@@ -174,9 +209,9 @@ const pad = (n: number) => String(n).padStart(2, "0");
                       )}
                     </div>
                     <p class="scene-exit mt-3 font-mono text-[0.6875rem] text-subtle">
-                      exit {v.scene.exit}
+                      exit {v.scene!.exit}
                     </p>
-                    <pre class="sr-only">{`$ ${v.scene.command}\n${toPlain(v.scene.output)}\nexit ${v.scene.exit}`}</pre>
+                    <pre class="sr-only">{`$ ${v.scene!.command}\n${toPlain(v.scene!.output)}\nexit ${v.scene!.exit}`}</pre>
                   </div>
                 )}
               </article>

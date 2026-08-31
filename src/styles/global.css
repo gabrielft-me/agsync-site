@@ -77,6 +77,9 @@
   --color-fg: #edeef0;
   --color-muted: #9b9ba6;
   --color-subtle: #85858f;
+  --color-bg: #0c0c0f;
+  --color-line: #1f1f24;
+  --color-line-strong: #2e2e36;
   /* Output the CLI leaves uncoloured inherits from here, so the panel has to
      set its own foreground — otherwise light theme paints it near-black on a
      dark window. */
@@ -404,3 +407,52 @@ html[data-app] body {
 @media (prefers-reduced-motion: reduce) {
   .caret { display: none !important; }
 }
+
+/* ---------------------------------------------------------------------------
+   The closing scene: the same window, prose instead of output.
+   --------------------------------------------------------------------------- */
+.scene-outro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: clamp(0.625rem, min(0.42vw + 0.36rem, 1.5vh), 0.8125rem);
+  line-height: 1.9;
+  color: var(--color-subtle);
+}
+
+@media (min-width: 1024px) {
+  /* Only once the window fills its column is there a height to centre in. */
+  [data-app] .scene-outro { bottom: 0; }
+}
+
+.outro-head { color: var(--color-muted); }
+.outro-rule { color: var(--color-line-strong); letter-spacing: -0.05em; }
+.outro-answer { color: var(--color-fg); }
+
+.outro-lines { margin-top: 3rem; }
+
+.outro-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 3rem;
+}
+
+.outro-button {
+  display: inline-flex;
+  align-items: center;
+  height: 2.75rem;
+  padding-inline: 1.25rem;
+  border: 1px solid var(--color-line-strong);
+  border-radius: 11px;
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  color: var(--color-fg);
+  transition: border-color 150ms ease-out;
+}
+.outro-button:hover { border-color: color-mix(in srgb, var(--color-fg) 40%, transparent); }
