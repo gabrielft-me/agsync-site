@@ -1,0 +1,86 @@
+name: Publish to PyPI
+
+on:
+  release:
+    types: [published]
+
+# Read-only by default; the publish job opts into OIDC explicitly.
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # Adjust if your test deps live in an extra, e.g. `pip install -e .[test]`
+          python -m pip install -e .
+          python -m pip install pytest
+
+      - name: Run test suite
+        run: python -m pytest
+
+  build:
+    name: Build sdist and wheel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install build frontend
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build twine
+
+      - name: Build distributions
+        run: python -m build
+
+      - name: Check distribution metadata
+        run: python -m twine check --strict dist/*
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    name: Publish to PyPI
+    # Gate: publish only runs if every test job and the build succeeded.
+    needs: [test, build]
+    runs-on: ubuntu-latest
+
+    environment:
+      name: pypi
+      # Replace YOUR-PACKAGE-NAME; this only renders a link in the Actions UI.
+      url: https://pypi.org/p/YOUR-PACKAGE-NAME
+
+    # Mints the short-lived OIDC token Trusted Publishing exchanges for an
+    # upload token. No PyPI API token or secret is used anywhere.
+    permissions:
+      id-token: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish with Trusted Publishing
+        uses: pypa/gh-action-pypi-publish@release/v1
