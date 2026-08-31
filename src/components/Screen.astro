@@ -444,20 +444,36 @@ const pad = (n: number) => String(n).padStart(2, "0");
       const body = bodies[index];
       if (!body) return;
       const cs = getComputedStyle(main);
-      const room =
-        main.clientHeight -
-        (parseFloat(cs.paddingTop) || 0) -
-        (parseFloat(cs.paddingBottom) || 0) -
-        chrome.offsetHeight;
-      // Wide enough for two columns: the window fills the height it is given,
-      // the way a terminal you opened yourself would, and its top and bottom
-      // edges stay put between scenes. Stacked, it shrinks to its output so
-      // the page below it stays reachable — except the editor, whose two panes
-      // have to share a height at every width.
-      const fills =
-        matchMedia("(min-width: 1024px)").matches ||
-        body.classList.contains("scene-ide");
-      const h = fills ? room : Math.min(body.scrollHeight, room);
+      const padBottom = parseFloat(cs.paddingBottom) || 0;
+      const wide = matchMedia("(min-width: 1024px)").matches;
+
+      // Two columns: the row is centred, so the panel's own top depends on its
+      // height and reading it back would be circular — measure main's content
+      // box instead. Stacked, the headline sits *above* the window and eats
+      // into what is left, so main's height is not the window's to take and
+      // the panel's own top is the only honest starting point.
+      const room = wide
+        ? main.clientHeight -
+          (parseFloat(cs.paddingTop) || 0) -
+          padBottom -
+          chrome.offsetHeight
+        : main.getBoundingClientRect().bottom -
+          padBottom -
+          panel.getBoundingClientRect().top -
+          chrome.offsetHeight;
+
+      // The editor's panes are absolutely positioned, so the body cannot
+      // report a natural height of its own; the panes can.
+      const ide = body.querySelector<HTMLElement>(".ide");
+      const wanted = ide
+        ? [...ide.children].reduce((sum, pane) => sum + pane.scrollHeight, 0)
+        : body.scrollHeight;
+
+      // Wide enough for two columns, the window fills the height it is given,
+      // the way a terminal you opened yourself would, and its edges stay put
+      // between scenes. Stacked, it takes only what it needs, so the page is
+      // visibly still going below it.
+      const h = wide ? room : Math.min(wanted, room);
       stack.style.height = `${Math.max(0, h)}px`;
     };
 

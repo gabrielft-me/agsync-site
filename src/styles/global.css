@@ -273,6 +273,13 @@ html[data-app] body {
   max-height: 40rem;
 }
 
+@media (max-width: 1023px) {
+  /* Stacked, the window gets half the screen and no more, whatever the script
+     works out — the headline is above it and the page has to go on below it.
+     The editor scrolls inside. */
+  [data-app] [data-stack] { max-height: 50svh; }
+}
+
 [data-app] .scene-body {
   position: absolute;
   top: 0;
