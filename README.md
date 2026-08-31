@@ -17,7 +17,12 @@ and ~3 KB of script inlined — no external JavaScript bundle.
 
 ## The output is captured, never written
 
-Every terminal block is what the CLI actually printed. To regenerate:
+Scene 1 is the exception and says so: `src/data/tree.ts` is an authored
+illustration of a repository layout, drawn without a prompt or an exit code so
+it cannot be mistaken for the output of a command. The project in it is
+invented.
+
+Every other terminal block is what the CLI actually printed. To regenerate:
 
 ```sh
 AGSYNC_REPO=~/path/to/agsync scripts/capture-scenes.sh
@@ -68,7 +73,7 @@ sips -s format png -c 630 1200 --cropOffset 0 0 shot.jpg --out public/og.png
 ```
 src/
   components/   Screen (the whole page), StarButton
-  data/         scenes.ts (generated — see above)
+  data/         scenes.ts (generated — see above), tree.ts (authored)
   lib/          ansi.ts (SGR -> spans), trim.ts, github.ts
   pages/        index.astro, 404.astro, og.astro
   styles/       global.css (tokens, texture, app-mode mechanics)

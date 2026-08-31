@@ -326,3 +326,73 @@ html[data-app] body {
    ticks need: a row under the terminal on mobile, a column beside it above. */
 [data-app] .rail-ticks { display: flex; }
 [data-app] .scene-exit { display: none; }
+
+/* ---------------------------------------------------------------------------
+   The orientation scene: a file tree in the same window as every other scene.
+   A sidebar's shape — icons, indent guides — not a diagram.
+   --------------------------------------------------------------------------- */
+.tree {
+  font-family: var(--font-mono);
+  /* A shade under the terminal type: twenty rows have to fit the window
+     without ever scrolling. */
+  font-size: clamp(0.5625rem, min(0.45vw + 0.36rem, 1.6vh), 0.875rem);
+  line-height: 1.4;
+}
+
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 1.5em;
+  color: var(--color-fg);
+}
+
+/* Everything agsync does not read recedes, so the three paths it does read
+   are the only thing left to look at. */
+.tree-dim { opacity: 0.35; }
+
+.tree-guide {
+  align-self: stretch;
+  width: 1.25rem;
+  flex: none;
+  border-left: 1px solid rgb(255 255 255 / 0.09);
+}
+
+.tree-icon {
+  width: 1.05em;
+  height: 1.05em;
+  flex: none;
+  color: var(--color-muted);
+}
+.tree-row:not(.tree-dim) .tree-icon { color: var(--color-accent); }
+
+.tree-name { white-space: pre; }
+
+.tree-mark {
+  margin-left: 0.75rem;
+  color: var(--color-accent);
+}
+
+/* The command types itself in on the way out of the tree, so the check is
+   visibly run against the paths just highlighted. */
+.caret {
+  display: none;
+  width: 0.55em;
+  height: 1.05em;
+  translate: 0 0.16em;
+  background: var(--color-accent);
+}
+[data-typing] .caret {
+  display: inline-block;
+  animation: caret-blink 1.05s steps(1) infinite;
+}
+[data-typing] [data-note] { visibility: hidden; }
+
+@keyframes caret-blink {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caret { display: none !important; }
+}
