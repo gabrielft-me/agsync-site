@@ -13,7 +13,7 @@ import sys
 # exception noted below.
 SCENES = [
     ("install-uv", "install-uv", "uv tool install agsync", None),
-    ("check-rot", "1", "agsync check", "this is a real repo, anonymised"),
+    ("check-rot", "1", "agsync check", "your agent, mid-workflow"),
     ("check-clean", "2", "agsync check", "after someone fixed it"),
     ("rules", "3", "agsync rules", None),
     ("replay", "4", "agsync replay .", "the part that hurts"),

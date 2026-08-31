@@ -27,6 +27,8 @@ interface Step {
   install?: string;
 }
 
+// Getting the package is the only thing a person types on this page; every
+// command after it is the agent's, and carries its mark instead of a prompt.
 const human = (scene: Scene): Step => ({ scene, typist: "human" });
 const agent = (scene: Scene): Step => ({ scene, typist: "agent" });
 
@@ -43,14 +45,14 @@ const views = [
       agent(byId("check-rot")),
     ],
   },
-  // The rest are you at your own terminal, so they keep the `$`. The glitch
-  // mark is rare on purpose: it only means something while it is the exception.
-  { kind: "run" as const, label: "Rarer than you’d think", steps: [human(byId("check-clean"))] },
-  { kind: "run" as const, label: "Fourteen ways to be wrong", steps: [human(byId("rules"))] },
-  { kind: "run" as const, label: "Every commit you’ve ever pushed, judged", steps: [human(byId("replay"))] },
-  { kind: "run" as const, label: "How long nobody noticed", steps: [human(byId("first-seen"))] },
-  { kind: "run" as const, label: "The part people uninstall", steps: [human(byId("gate"))] },
-  { kind: "run" as const, label: "Start from nothing", steps: [human(byId("init"))] },
+  // Everything past the install is the agent's, and carries its mark. Getting
+  // the package is the only thing a person actually types.
+  { kind: "run" as const, label: "Rarer than you’d think", steps: [agent(byId("check-clean"))] },
+  { kind: "run" as const, label: "Fourteen ways to be wrong", steps: [agent(byId("rules"))] },
+  { kind: "run" as const, label: "Every commit you’ve ever pushed, judged", steps: [agent(byId("replay"))] },
+  { kind: "run" as const, label: "How long nobody noticed", steps: [agent(byId("first-seen"))] },
+  { kind: "run" as const, label: "The part people uninstall", steps: [agent(byId("gate"))] },
+  { kind: "run" as const, label: "Start from nothing", steps: [agent(byId("init"))] },
   { kind: "outro" as const, label: outro.label, steps: [] as Step[] },
 ];
 
@@ -301,7 +303,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
                         data-typist={st.typist}
                         data-install={st.install}
                         hidden={st.install ? k !== 0 : undefined}
-                        class:list={["step", k > 0 && "mt-6"]}
+                        class="step"
                       >
                         <p class="term-line">{st.typist === "agent" ? (
                             <Fragment>
@@ -437,6 +439,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
 
     let index = -1;
     let flashTimer = 0;
+    const restTimers = new Map<HTMLElement, number>();
 
     // An elision is a control, not a caption: it puts the lines it stands for
     // back in their original places.
@@ -545,33 +548,47 @@ const pad = (n: number) => String(n).padStart(2, "0");
     // A scene is a sequence of runs: the install a person types, then the
     // command the agent types into the same window. Hidden steps — the package
     // manager you did not pick — are not part of it.
+    const stepsOf = (body: HTMLElement) =>
+      [...body.querySelectorAll<HTMLElement>("[data-step]")].filter((el) => !el.hidden);
+
+    // One command on screen at a time: the window is cleared between them, the
+    // way you clear it yourself before handing it to something else.
+    const only = (body: HTMLElement, k: number) => {
+      stepsOf(body).forEach((step, j) => {
+        step.toggleAttribute("data-off", j !== k);
+        step.removeAttribute("data-fading");
+      });
+      body.querySelector(".install-tabs")?.toggleAttribute("data-off", k !== 0);
+    };
+
+    // A scene at rest: cleared, showing whatever ran last, fully printed. A
+    // half-played scene is put back to this rather than left to finish itself —
+    // dropping the running flag alone would light every unprinted row at once,
+    // so leaving mid-run would end with the output completing on its way out.
+    const reset = (body: HTMLElement) => {
+      const steps = stepsOf(body);
+      if (!steps.length) return;
+      only(body, steps.length - 1);
+      for (const step of steps) {
+        step.removeAttribute("data-typing");
+        step.removeAttribute("data-running");
+        const el = step.querySelector<HTMLElement>("[data-cmd]");
+        if (el) el.textContent = el.dataset.cmd ?? "";
+        for (const row of step.querySelectorAll("[data-out] > *")) {
+          row.removeAttribute("data-shown");
+        }
+      }
+    };
+
     const playScene = (body: HTMLElement, animate: boolean, done: () => void) => {
       stopTyping();
-      const steps = [...body.querySelectorAll<HTMLElement>("[data-step]")].filter(
-        (el) => !el.hidden,
-      );
-      if (!steps.length) return done();
-      const tabs = body.querySelector<HTMLElement>(".install-tabs");
-
-      // One command on screen at a time: the window is cleared between them,
-      // the way you clear it yourself before handing it to something else.
-      const only = (k: number) => {
-        steps.forEach((step, j) => {
-          step.toggleAttribute("data-off", j !== k);
-          step.removeAttribute("data-fading");
-        });
-        tabs?.toggleAttribute("data-off", k !== 0);
-      };
-
-      if (!animate) {
-        // Cleared, so what is left is whatever ran last.
-        only(steps.length - 1);
-        for (const step of steps) {
-          typeCommand(step, false);
-          printOutput(step, false, () => {});
-        }
-        return done();
-      }
+      // Coming back before the scene has finished fading: its pending reset is
+      // no longer wanted, this one supersedes it.
+      clearTimeout(restTimers.get(body));
+      restTimers.delete(body);
+      reset(body);
+      const steps = stepsOf(body);
+      if (!steps.length || !animate) return done();
 
       let i = 0;
       const next = () => {
@@ -579,7 +596,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
         if (!step) return done();
 
         const start = () => {
-          only(i - 1);
+          only(body, i - 1);
           // The window changes hands here, and stays changed for the rest of
           // the scene: what is driving it did not hand it back.
           if (step.dataset.typist === "agent") panel.dataset.typist = "agent";
@@ -662,12 +679,10 @@ const pad = (n: number) => String(n).padStart(2, "0");
         // Keeps six terminals' worth of output out of the accessibility tree.
         b.inert = !on;
         collapse(b);
-        // Leaving mid-run must not strand a step with its output still
-        // invisible; the timers are cancelled, the state has to go too.
-        for (const st of b.querySelectorAll("[data-step]")) {
-          st.removeAttribute("data-running");
-          st.removeAttribute("data-typing");
-        }
+        // Put a scene back to rest once it has faded, not while it is still on
+        // screen — resetting in view is a visible snap from wherever the run
+        // got to straight to its end state.
+        if (!on) restTimers.set(b, window.setTimeout(() => reset(b), 260));
       });
       labels.forEach((l, j) => l.toggleAttribute("data-on", j === n));
       ticks.forEach((t, j) => {
