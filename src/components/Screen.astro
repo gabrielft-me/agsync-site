@@ -596,6 +596,10 @@ const pad = (n: number) => String(n).padStart(2, "0");
         if (!step) return done();
 
         const start = () => {
+          // Hide the output before the step is on screen at all. Setting this
+          // when printing starts leaves it visible for the whole of the typing,
+          // which is the one thing the typing is there to precede.
+          step.setAttribute("data-running", "");
           only(body, i - 1);
           // The window changes hands here, and stays changed for the rest of
           // the scene: what is driving it did not hand it back.
@@ -725,9 +729,6 @@ const pad = (n: number) => String(n).padStart(2, "0");
       if (plays) {
         exitEl.textContent = "";
         delete panel.dataset.flash;
-        for (const st of body.querySelectorAll("[data-step]")) {
-          st.setAttribute("data-running", "");
-        }
       }
       playScene(body, plays, settle);
 
