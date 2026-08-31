@@ -503,11 +503,7 @@ html[data-app] body {
   [data-app] .scene-outro { bottom: 0; }
 }
 
-.outro-head { color: var(--color-muted); }
-.outro-rule { color: var(--color-line-strong); letter-spacing: -0.05em; }
-.outro-answer { color: var(--color-fg); }
-
-.outro-lines { margin-top: 3rem; }
+.outro-lines { color: var(--color-muted); }
 
 .outro-by { margin-top: 1.5rem; }
 .outro-by a {

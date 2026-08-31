@@ -247,10 +247,6 @@ const pad = (n: number) => String(n).padStart(2, "0");
                   </div>
                 ) : v.kind === "outro" ? (
                   <div class="scene-body scene-outro" data-title="agent-memory — zsh">
-                    <p class="outro-head">{outro.heading}</p>
-                    <p class="outro-rule" aria-hidden="true">{outro.rule}</p>
-                    <p class="outro-answer">{outro.answer}</p>
-
                     <div class="outro-lines">
                       {outro.lines.map((line) => (
                         <p>{line}</p>
