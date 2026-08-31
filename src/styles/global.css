@@ -86,6 +86,17 @@
 
 * { border-color: var(--color-line); }
 
+/* One frame for header, content and footer, so all three share an edge.
+   320 + 80 gutter + 900 terminal = 1300. Past that the group centres rather
+   than letting the right margin grow. */
+.frame {
+  width: min(100% - 48px, 1300px);
+  margin-inline: auto;
+}
+@media (min-width: 1024px) {
+  .frame { width: min(100% - 160px, 1300px); }
+}
+
 html {
   background: var(--color-bg);
   -webkit-text-size-adjust: 100%;
@@ -205,6 +216,12 @@ h1 {
   text-overflow: ellipsis;
 }
 
+@media (max-width: 1023px) {
+  /* Narrow enough that an ellipsis would eat the message: scroll instead. */
+  .term-line { overflow: visible; text-overflow: clip; }
+  [data-app] .scene-body { overflow-x: auto; }
+}
+
 /* ---------------------------------------------------------------------------
    App mode.
 
@@ -281,7 +298,11 @@ html[data-app] body {
    stacked; the exit badge in the chrome likewise. In list mode each scene
    carries its own. */
 .rail-app,
+.rail-ticks,
 .chrome-exit { display: none; }
 [data-app] .rail-app { display: block; }
 [data-app] .chrome-exit { display: block; }
+/* Separate from .rail-app so it does not overwrite the flex direction the
+   ticks need: a row under the terminal on mobile, a column beside it above. */
+[data-app] .rail-ticks { display: flex; }
 [data-app] .scene-exit { display: none; }

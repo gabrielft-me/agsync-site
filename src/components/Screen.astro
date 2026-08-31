@@ -11,14 +11,12 @@ const pad = (n: number) => String(n).padStart(2, "0");
 ---
 
 <div class="screen flex min-h-svh flex-col">
-  <header
-    class="flex h-16 shrink-0 items-center justify-between gap-6 px-6 lg:h-20 lg:px-12"
-  >
+  <header class="frame flex h-16 shrink-0 items-center justify-between gap-8">
     <span class="font-mono text-[0.8125rem] font-medium tracking-tight text-fg">
       agsync
     </span>
 
-    <nav class="flex items-center gap-5 sm:gap-6">
+    <nav class="flex items-center gap-6">
       <StarButton />
       <a
         href={links.readme}
@@ -45,42 +43,23 @@ const pad = (n: number) => String(n).padStart(2, "0");
   </header>
 
   <main
-    class="flex min-h-0 flex-1 flex-col gap-10 px-6 pb-6 lg:grid lg:grid-cols-[30%_minmax(0,1fr)] lg:items-stretch lg:gap-12 lg:px-12 lg:pb-8"
+    class="frame flex min-h-0 flex-1 flex-col gap-8 py-8 lg:grid lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start lg:gap-20 lg:py-20"
   >
-    <div class="flex flex-col justify-center">
-      <h1 class="max-w-[15ch] text-[clamp(1.625rem,2.1vw,2.375rem)]">
-        ESLint for your agents&rsquo; memory
-      </h1>
+    <div>
+      <h1 class="text-[2.375rem]">ESLint for your agents&rsquo; memory</h1>
 
-      <div class="rail-app mt-10">
+      <div class="rail-app mt-16">
         <p data-count class="font-mono text-[0.75rem] tabular-nums text-subtle">
           01 / {total}
         </p>
-        <div data-labels class="relative mt-2 h-14 text-[1.0625rem] text-fg"></div>
-
-        <ol class="mt-4 flex gap-2 lg:mt-6 lg:flex-col lg:gap-2.5" role="list">
-          {
-            scenes.map((s, i) => (
-              <li>
-                <button
-                  type="button"
-                  data-tick={i}
-                  aria-label={`Scene ${s.n} of ${scenes.length}: ${s.label}`}
-                  class="group flex h-4 w-full items-center lg:h-3"
-                >
-                  <span class="h-px w-9 rounded-full bg-line-strong transition-all duration-200 group-hover:bg-muted group-data-[on]:h-0.5 group-data-[on]:bg-accent lg:w-10" />
-                </button>
-              </li>
-            ))
-          }
-        </ol>
+        <div data-labels class="relative mt-4 h-16 text-[1.0625rem] text-fg"></div>
       </div>
     </div>
 
-    <div class="relative flex min-h-0 items-center">
+    <div class="relative min-h-0">
       <div class="tex-scan" aria-hidden="true"></div>
 
-      <div class="panel terminal flex w-full flex-col">
+      <div class="panel terminal flex w-full max-w-[900px] flex-col">
         <div
           data-chrome
           class="flex shrink-0 items-center gap-2 border-b border-white/[0.06] px-4 py-3 lg:px-5"
@@ -142,11 +121,31 @@ const pad = (n: number) => String(n).padStart(2, "0");
           }
         </div>
       </div>
+
+      <ol
+        class="rail-ticks mt-8 gap-4 lg:absolute lg:right-full lg:top-0 lg:mt-0 lg:mr-6 lg:flex-col lg:gap-0"
+        role="list"
+      >
+        {
+          scenes.map((s, i) => (
+            <li>
+              <button
+                type="button"
+                data-tick={i}
+                aria-label={`Scene ${s.n} of ${scenes.length}: ${s.label}`}
+                class="group flex h-4 w-8 items-start"
+              >
+                <span class="h-px w-8 rounded-full bg-line-strong transition-all duration-200 group-hover:bg-muted group-data-[on]:h-0.5 group-data-[on]:bg-accent" />
+              </button>
+            </li>
+          ))
+        }
+      </ol>
     </div>
   </main>
 
   <footer
-    class="flex shrink-0 flex-wrap items-center justify-between gap-x-8 gap-y-1 px-6 py-4 lg:px-12"
+    class="frame flex min-h-16 shrink-0 flex-wrap items-center justify-between gap-x-8 gap-y-2 py-4"
   >
     <p class="font-mono text-[0.75rem] text-subtle">
       MIT · zero dependencies · Python 3.11+
@@ -166,6 +165,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
   const countEl = document.querySelector<HTMLElement>("[data-count]");
   const exitEl = document.querySelector<HTMLElement>("[data-exit]");
   const chrome = document.querySelector<HTMLElement>("[data-chrome]");
+  const main = document.querySelector("main");
   const articles = stack
     ? [...stack.querySelectorAll<HTMLElement>(".scene")]
     : [];
@@ -173,7 +173,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
 
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 
-  if (stack && panel && labelBox && countEl && exitEl && chrome && articles.length && !reduced.matches) {
+  if (stack && panel && labelBox && countEl && exitEl && chrome && main && articles.length && !reduced.matches) {
     const bodies: HTMLElement[] = [];
     const labels: HTMLElement[] = [];
     const total = String(articles.length).padStart(2, "0");
@@ -194,13 +194,19 @@ const pad = (n: number) => String(n).padStart(2, "0");
     let index = -1;
     let flashTimer = 0;
 
-    // The window fits its content. Cap at 70vh: past that a scene has too much
-    // output and belongs in src/lib/trim.ts, not in a scrollbar.
+    // The window grows downward from a top edge that never moves, and stops at
+    // the bottom of the content area. A scene that would overrun it has too
+    // much output and belongs in src/lib/trim.ts, not in a scrollbar.
     const fit = () => {
       const body = bodies[index];
       if (!body) return;
-      const cap = innerHeight * 0.7 - chrome.offsetHeight;
-      stack.style.height = `${Math.min(body.scrollHeight, cap)}px`;
+      const pad = parseFloat(getComputedStyle(main).paddingBottom) || 0;
+      const room =
+        main.getBoundingClientRect().bottom -
+        pad -
+        panel.getBoundingClientRect().top -
+        chrome.offsetHeight;
+      stack.style.height = `${Math.max(0, Math.min(body.scrollHeight, room))}px`;
     };
 
     const show = (next: number) => {
