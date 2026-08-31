@@ -13,7 +13,10 @@ npm run build      # -> dist/
 ```
 
 Astro with no UI framework. The page ships as a single HTML file with the CSS
-and ~3 KB of script inlined — no external JavaScript bundle.
+and script inlined — no external JavaScript bundle. The keystroke plan for the
+one command that types itself in is generated at build time (`src/lib/typing.ts`)
+and embedded as a data attribute, which keeps the client script import-free and
+therefore inlined.
 
 ## The output is captured, never written
 
@@ -77,7 +80,7 @@ sips -s format png -c 630 1200 --cropOffset 0 0 shot.jpg --out public/og.png
 src/
   components/   Screen (the whole page), StarButton
   data/         scenes.ts (generated — see above), tree.ts + outro.ts (authored)
-  lib/          ansi.ts (SGR -> spans), trim.ts, github.ts
+  lib/          ansi.ts (SGR -> spans), trim.ts, typing.ts, github.ts
   pages/        index.astro, 404.astro, og.astro
   styles/       global.css (tokens, texture, app-mode mechanics)
 scripts/        capture-scenes.sh, build-scenes.py, pty-run.py
@@ -90,9 +93,11 @@ with its own label and output. That is what a reader gets with JavaScript off
 or with `prefers-reduced-motion: reduce`. Only when both are available does
 script add `data-app`, stack the scenes, and take over the wheel.
 
-The window's height is measured from the active scene and animated, capped at
-70vh. Nothing scrolls inside it: a scene that does not fit has too much output
-and belongs in `trim.ts`, not in a scrollbar.
+Above the breakpoint the window takes the whole height it is given, capped at
+40rem so it stops being a bigger and bigger empty rectangle on a tall screen;
+whatever room is left over splits above and below it. Nothing scrolls inside it
+unless you expand an elision: a scene that does not fit has too much output and
+belongs in `trim.ts`, not in a scrollbar.
 
 Three fixed texture layers sit behind everything — a radial wash, a tiled
 `feTurbulence` grain at ~4%, and scanlines behind the terminal only. None are

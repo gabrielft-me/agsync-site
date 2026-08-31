@@ -261,6 +261,9 @@ html[data-app] body {
   padding: 0;
   overflow: hidden;
   transition: height 260ms ease-out;
+  /* Script asks for the whole height it is given; this is where that stops.
+     Past it the window is just a bigger empty rectangle. */
+  max-height: 40rem;
 }
 
 [data-app] .scene-body {
@@ -385,7 +388,8 @@ html[data-app] body {
 }
 
 /* The command types itself in on the way out of the tree, so the check is
-   visibly run against the paths just highlighted. */
+   visibly run against the paths just highlighted. The cursor is solid while
+   keys are landing — a terminal only blinks when it is waiting for you. */
 .caret {
   display: none;
   width: 0.55em;
@@ -393,16 +397,11 @@ html[data-app] body {
   translate: 0 0.16em;
   background: var(--color-accent);
 }
-[data-typing] .caret {
-  display: inline-block;
-  animation: caret-blink 1.05s steps(1) infinite;
-}
-[data-typing] [data-note] { visibility: hidden; }
+[data-typing] .caret { display: inline-block; }
 
-@keyframes caret-blink {
-  0%, 50% { opacity: 1; }
-  50.01%, 100% { opacity: 0; }
-}
+/* The comment is not part of what gets typed; it arrives once the line is. */
+[data-note] { transition: opacity 260ms ease-out; }
+[data-typing] [data-note] { opacity: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   .caret { display: none !important; }
