@@ -17,7 +17,7 @@ export const outro = {
   label: "The honest part",
   lines: [`Built at ${VENUE}.`, "Open sourced because it seemed useful."],
   by: {
-    name: "Gabriel Fagundes",
+    name: "Gabriel Teixeira",
     note: `previously an AI engineer at ${EMPLOYER}`,
   },
 } as const;
