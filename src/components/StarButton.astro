@@ -1,0 +1,41 @@
+---
+import { links } from "../config";
+import { getStarCount, formatStars } from "../lib/github";
+
+interface Props {
+  class?: string;
+}
+const { class: klass = "" } = Astro.props;
+
+// Never a client fetch: a button that renders 0 and corrects itself a moment
+// later is worse than a button with no number on it.
+const stars = await getStarCount();
+---
+
+<a
+  href={links.repo}
+  target="_blank"
+  rel="noopener"
+  class:list={[
+    "group inline-flex h-11 select-none items-center gap-2.5 rounded-[11px] bg-fg px-5 text-[0.9375rem] font-medium text-bg transition-opacity duration-150 hover:opacity-88",
+    klass,
+  ]}
+>
+  <svg
+    viewBox="0 0 16 16" aria-hidden="true"
+    class="size-4 shrink-0 transition-transform duration-200 group-hover:rotate-[14deg]"
+  >
+    <path
+      fill="currentColor"
+      d="M8 .8l2.06 4.42 4.74.63-3.5 3.3.9 4.85L8 11.6l-4.2 2.4.9-4.85L1.2 5.85l4.74-.63z"
+    ></path>
+  </svg>
+  <span>Star on GitHub</span>
+  {
+    stars !== null && (
+      <span class="border-l border-bg/20 pl-2.5 font-mono text-[0.8125rem] tabular-nums opacity-70">
+        {formatStars(stars)}
+      </span>
+    )
+  }
+</a>

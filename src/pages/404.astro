@@ -1,0 +1,18 @@
+---
+// The only place on the site where the joke is allowed to be the whole page.
+import Base from "../layouts/Base.astro";
+---
+
+<Base title="agsync — not found">
+  <div class="flex min-h-svh items-center justify-center px-6">
+    <div class="panel terminal w-full max-w-2xl px-5 py-5 sm:px-7 sm:py-6">
+      <p class="term-line">
+        <span class="text-accent">$ </span><span class="text-fg">agsync check /this/page</span>
+      </p>
+      <p class="term-line mt-3">
+        <span class="text-error">error</span><span class="text-subtle">  links-resolve  </span
+        ><span class="text-fg">link target does not exist</span>
+      </p>
+    </div>
+  </div>
+</Base>

@@ -1,0 +1,287 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter/index.css";
+@import "@fontsource-variable/jetbrains-mono/index.css";
+
+/* ---------------------------------------------------------------------------
+   Tokens. Dark is the default; light is a deliberate warm palette, not an
+   inversion. Semantic colours are the CLI's own, so the site and the tool read
+   as one object.
+   --------------------------------------------------------------------------- */
+@theme {
+  --color-bg: #0c0c0f;
+  --color-raised: #16161a;
+  --color-terminal: #131317;
+  --color-line: #1f1f24;
+  --color-line-strong: #2e2e36;
+
+  --color-fg: #edeef0;
+  --color-muted: #a1a1aa;
+  --color-subtle: #7a7a86;
+
+  --color-error: #ff7a70;
+  --color-warn: #eab308;
+  --color-ok: #4ac25c;
+  --color-accent: #8b6dff;
+
+  --font-sans: "Inter Variable", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --radius-panel: 14px;
+}
+
+:root {
+  /* Base wash: lighter behind the terminal, falling off to the corners. */
+  --wash: radial-gradient(125% 105% at 64% 44%, #101014 0%, #0c0c0f 46%, #08080a 100%);
+  --grain-opacity: 0.038;
+  --scan-line: rgb(255 255 255 / 0.015);
+
+  --panel-border: rgb(255 255 255 / 0.08);
+  --panel-shadow: 0 42px 90px -44px rgb(0 0 0 / 0.9), 0 2px 10px -4px rgb(0 0 0 / 0.6);
+  --panel-inset: inset 0 1px 0 0 rgb(255 255 255 / 0.04);
+
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --color-bg: #fafaf8;
+  --color-raised: #ffffff;
+  --color-terminal: #131317;
+  --color-line: #e7e6e0;
+  --color-line-strong: #d3d2ca;
+
+  --color-fg: #17171a;
+  --color-muted: #5d5d66;
+  --color-subtle: #6f6f7b;
+
+  --color-error: #c62b1d;
+  --color-warn: #8a5a00;
+  --color-ok: #1a7f31;
+  --color-accent: #5b3ee0;
+
+  --wash: radial-gradient(125% 105% at 64% 44%, #ffffff 0%, #fafaf8 46%, #f0efe9 100%);
+  --grain-opacity: 0.022;
+
+  --panel-border: rgb(255 255 255 / 0.08);
+  --panel-shadow: 0 40px 80px -46px rgb(28 26 20 / 0.45), 0 2px 8px -4px rgb(28 26 20 / 0.18);
+
+  color-scheme: light;
+}
+
+/* The terminal stays dark in both themes — a light-mode terminal is a
+   screenshot of a different program. Its semantic colours are the raw CLI
+   values, lightened only where they miss 4.5:1 on the panel fill. */
+.terminal {
+  --color-error: #f4695d;
+  --color-warn: #e3a008;
+  --color-ok: #3fb950;
+  --color-fg: #edeef0;
+  --color-muted: #9b9ba6;
+  --color-subtle: #85858f;
+  /* Output the CLI leaves uncoloured inherits from here, so the panel has to
+     set its own foreground — otherwise light theme paints it near-black on a
+     dark window. */
+  color: var(--color-fg);
+  color-scheme: dark;
+}
+
+* { border-color: var(--color-line); }
+
+html {
+  background: var(--color-bg);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: transparent;
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
+}
+
+h1 {
+  font-weight: 560;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  text-wrap: balance;
+}
+
+::selection { background: var(--color-accent); color: #fff; }
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ---------------------------------------------------------------------------
+   Texture. Three fixed layers, cheapest first, none of them animated and none
+   of them hit-testable.
+   --------------------------------------------------------------------------- */
+.tex-wash,
+.tex-grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.tex-wash {
+  z-index: -2;
+  background: var(--wash);
+}
+
+/* feTurbulence, rasterised once by the engine and tiled. Felt as depth, not
+   seen as grain — if it reads as texture it is twice too strong. */
+.tex-grain {
+  z-index: -1;
+  opacity: var(--grain-opacity);
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 width%3D%22180%22 height%3D%22180%22%3E%3Cfilter id%3D%22g%22 x%3D%220%22 y%3D%220%22 width%3D%22100%25%22 height%3D%22100%25%22%3E%3CfeTurbulence type%3D%22fractalNoise%22 baseFrequency%3D%220.8%22 numOctaves%3D%223%22 stitchTiles%3D%22stitch%22%2F%3E%3CfeColorMatrix type%3D%22saturate%22 values%3D%220%22%2F%3E%3C%2Ffilter%3E%3Crect width%3D%22180%22 height%3D%22180%22 filter%3D%22url(%23g)%22%2F%3E%3C%2Fsvg%3E");
+  background-size: 180px 180px;
+}
+
+/* Scanlines belong to the subject, not the page: they sit behind the terminal
+   and fade out before they reach anything else. */
+.tex-scan {
+  position: absolute;
+  inset: -4rem -3rem;
+  z-index: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--scan-line) 0 1px,
+    transparent 1px 4px
+  );
+  -webkit-mask-image: radial-gradient(68% 66% at 50% 50%, #000 25%, transparent 100%);
+  mask-image: radial-gradient(68% 66% at 50% 50%, #000 25%, transparent 100%);
+}
+
+:root[data-theme="light"] .tex-scan {
+  --scan-line: rgb(24 22 16 / 0.02);
+}
+
+/* ---------------------------------------------------------------------------
+   The terminal window. Raised off the background rather than outlined.
+   --------------------------------------------------------------------------- */
+.panel {
+  position: relative;
+  z-index: 1;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-terminal);
+  box-shadow: var(--panel-shadow), var(--panel-inset);
+  transition:
+    border-color 520ms ease-out,
+    box-shadow 520ms ease-out;
+}
+
+/* On a scene change the exit code tints the glow, not just the border. */
+.panel[data-flash="ok"] {
+  border-color: rgb(63 185 80 / 0.34);
+  box-shadow: var(--panel-shadow), var(--panel-inset), 0 0 70px -12px rgb(63 185 80 / 0.26);
+  transition-duration: 120ms;
+}
+.panel[data-flash="err"] {
+  border-color: rgb(240 87 75 / 0.36);
+  box-shadow: var(--panel-shadow), var(--panel-inset), 0 0 70px -12px rgb(240 87 75 / 0.26);
+  transition-duration: 120ms;
+}
+
+/* ---------------------------------------------------------------------------
+   Terminal type.
+   --------------------------------------------------------------------------- */
+.term-line {
+  font-family: var(--font-mono);
+  /* Width sets the size; a short window still has to shrink it. */
+  font-size: clamp(0.5625rem, min(0.42vw + 0.34rem, 1.35vh), 0.8125rem);
+  line-height: 1.62;
+  /* One finding, one line, always. A message too long for the window is cut
+     with an ellipsis rather than wrapped — a second line for one finding is
+     what makes a dense scene unreadable. */
+  white-space: pre;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------------------------------------------------------------------------
+   App mode.
+
+   Source order is a plain vertical list: headline, then seven scenes, each
+   with its own label and output. That is what a reader gets with JS off or
+   motion reduced. Script adds data-app, and only then does the page become a
+   single non-scrolling screen with the scenes stacked and cross-fading.
+   --------------------------------------------------------------------------- */
+html[data-app],
+html[data-app] body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+[data-app] .screen {
+  height: 100svh;
+}
+
+[data-app] .scene {
+  display: contents;
+}
+
+[data-app] .scene-head {
+  display: none;
+}
+
+/* The window is as tall as the output it is showing. Script measures the
+   active scene and sets this height; nothing ever scrolls inside it, so a
+   scene that will not fit is a scene with too much output.
+   An absolutely positioned child is laid out against the padding box, so the
+   stack hands its padding to the bodies rather than keeping it. */
+[data-app] [data-stack] {
+  padding: 0;
+  overflow: hidden;
+  transition: height 260ms ease-out;
+}
+
+[data-app] .scene-body {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 1rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms ease-out;
+}
+[data-app] .scene-body[data-on] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (min-width: 1024px) {
+  [data-app] .scene-body { padding: 1.25rem 1.5rem; }
+}
+
+.scene-label {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 220ms ease-out;
+}
+.scene-label[data-on] { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* The rail's counter, label and ticks only mean anything once the scenes are
+   stacked; the exit badge in the chrome likewise. In list mode each scene
+   carries its own. */
+.rail-app,
+.chrome-exit { display: none; }
+[data-app] .rail-app { display: block; }
+[data-app] .chrome-exit { display: block; }
+[data-app] .scene-exit { display: none; }
