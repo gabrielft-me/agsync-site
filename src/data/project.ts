@@ -39,12 +39,15 @@ export const docs: Doc[] = [
 
 ## Boot protocol
 
-Read these before changing anything, in order:
+Before changing anything:
 
-1. \`memory/goal.md\` — what this service is for
-2. \`memory/decisions.md\` — why it is built the way it is
-3. \`memory/state.md\` — what is done, and what is only claimed
-4. \`tasks/README.md\` — what is open
+1. \`agsync check --no-baseline\` — if it fails, repair what is
+   unambiguous and report the rest. Do not start on memory you
+   cannot trust.
+2. \`memory/goal.md\` — what this service is for
+3. \`memory/decisions.md\` — why it is built the way it is
+4. \`memory/state.md\` — what is done, and what is only claimed
+5. \`tasks/README.md\` — what is open
 
 ## Rules
 
