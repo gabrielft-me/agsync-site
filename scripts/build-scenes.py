@@ -21,6 +21,11 @@ SCENES = [
     ("rules", "3", "agsync rules", None),
     ("replay", "4", "agsync replay .", "the part that hurts"),
     ("first-seen", "5", "agsync replay . --first-seen", None),
+    ("claim-a", "claim-a", 'git commit -am "claim task 00"', None),
+    ("claim-b", "claim-b", 'git commit -am "claim task 00"', None),
+    ("push-a", "push-a", "git push", None),
+    ("push-b", "push-b", "git push", None),
+    ("start-b", "start-b", 'git commit -am "start task 02"', None),
     ("gate", "6", 'git commit -m "wip"', "good luck"),
     ("init", "7", "agsync init", None),
 ]

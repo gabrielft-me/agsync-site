@@ -14,9 +14,13 @@ import sys
 # pip talking about pip, not about the package it just installed.
 PIP_NOTICE = re.compile(r"(?:\\n)*\[notice\][^\\]*(?:\\n)?")
 
+# Where the capture ran. git names the remote by absolute path, and the work
+# directory is a fresh mktemp every time; nothing about agsync is in there.
+TEMP_PATH = re.compile(r"(?:/private)?/(?:var/folders|tmp)/[^\s'\\]+")
+
 
 def normalise(text: str) -> str:
-    return PIP_NOTICE.sub("", text)
+    return TEMP_PATH.sub("<work>", PIP_NOTICE.sub("", text))
 
 
 def main() -> int:

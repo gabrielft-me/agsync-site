@@ -1,0 +1,9 @@
+---
+// The agent's prompt. Not a `$`, because nobody is at the keyboard, and not a
+// spinner, because nothing is loading — one cell flickering between states.
+const GLYPHS = ["▛", "▜", "▟", "▙", "▚", "▞"];
+---
+
+<span class="agent-mark" aria-hidden="true">
+  {GLYPHS.map((g) => <span>{g}</span>)}
+</span>

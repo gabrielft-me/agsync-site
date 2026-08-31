@@ -649,3 +649,58 @@ html[data-app] body {
   .agent-mark > span { animation: none; opacity: 0; }
   .agent-mark > span:first-child { opacity: 1; }
 }
+
+/* ---------------------------------------------------------------------------
+   Two agents, one task.
+
+   The split is for the race: a rejected push only means anything if you saw
+   the other one land, and a single stream reads as one agent doing six things
+   in order. It ends where the finding starts — half a window is about 66
+   characters and the rule's message is 110, so the sentence that makes the
+   scene worth having would be the part that got truncated.
+   --------------------------------------------------------------------------- */
+.race {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1024px) {
+  .race {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0;
+  }
+  .race-side + .race-side {
+    border-left: 1px solid rgb(255 255 255 / 0.07);
+    padding-left: 1.5rem;
+    margin-left: 1.5rem;
+  }
+}
+
+.race-who {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--color-subtle);
+  margin-bottom: 0.75rem;
+}
+
+.race-run + .race-run { margin-top: 1rem; }
+
+/* Back to one window, and the divider does not carry past the race. */
+.race-after {
+  margin-top: 1.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgb(255 255 255 / 0.07);
+}
+
+/* The finding is one finding, and its sentence is the argument of the scene —
+   "another agent cannot tell whether this is being worked on or was abandoned".
+   One line per finding exists to stop a list of them becoming unreadable; with
+   a single one there is nothing to protect, and the sentence matters more. */
+.race-after .term-line {
+  white-space: pre-wrap;
+  overflow: visible;
+  text-overflow: clip;
+  padding-left: 4ch;
+  text-indent: -4ch;
+}

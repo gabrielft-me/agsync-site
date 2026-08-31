@@ -1,0 +1,30 @@
+---
+import type { Row } from "../lib/trim";
+
+interface Props {
+  row: Row;
+}
+const { row } = Astro.props;
+---
+
+{
+  row.kind === "elision" ? (
+    <button
+      type="button"
+      data-expand
+      data-more={row.text}
+      aria-expanded="false"
+      class="term-line scene-elision"
+    >
+      {`   … ${row.text}`}
+    </button>
+  ) : (
+    <p class:list={["term-line", row.extra && "scene-extra"]}>
+      {row.spans.length === 0 ? (
+        <span>&nbsp;</span>
+      ) : (
+        row.spans.map((sp) => <span class={sp.cls}>{sp.text}</span>)
+      )}
+    </p>
+  )
+}

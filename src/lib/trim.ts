@@ -37,7 +37,34 @@ function split(scene: Scene) {
 const shown = (spans: Span[]): Row => ({ kind: "line", spans, extra: false });
 const extra = (spans: Span[]): Row => ({ kind: "line", spans, extra: true });
 
+// git names the remote on two lines, and neither says anything the line above
+// or below does not: one is the path it pushed to, the other repeats it inside
+// an error. The hints are the useful part, and three of them is the argument.
+const push = (scene: Scene): Row[] => {
+  const { spans, plain } = split(scene);
+  let hints = 0;
+  const rows: Row[] = [];
+  let dropped = 0;
+
+  for (let i = 0; i < plain.length; i++) {
+    const line = plain[i]!;
+    const keep =
+      !line.startsWith("To ") &&
+      !line.startsWith("error: failed to push") &&
+      (!line.startsWith("hint:") || ++hints <= 3);
+    rows.push(keep ? shown(spans[i]!) : extra(spans[i]!));
+    if (!keep) dropped++;
+  }
+
+  assert(dropped > 0, "nothing to elide from a push");
+  rows.push({ kind: "elision", text: `${dropped} more` });
+  return rows;
+};
+
 const PLANS: Record<string, (scene: Scene) => Row[]> = {
+  "push-a": push,
+  "push-b": push,
+
   // `agsync check` on a repo that decayed: three findings that are damning on
   // sight — an unsatisfiable boot step, a duplicate decision ID, and an index
   // that disagrees with the file it indexes.

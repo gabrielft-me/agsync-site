@@ -111,6 +111,67 @@ sed -i '' 's/^\*\*Status:\*\* todo$/**Status:** done/' "$AGENT/tasks/00-example.
 git -C "$AGENT" add -A
 run 6 "$AGENT" 'git commit -m "wip"'
 
+# Two agents, one task. A bare origin and two clones of it, both with the hook
+# installed, both reaching for the same task without knowing about the other.
+# Everything here is real git and real agsync; nothing is arranged beyond the
+# two of them starting at the same commit, which is the situation itself.
+# Pinned dates and identities, so the same tree always produces the same shas
+# and a re-capture can be compared byte for byte. The clock is the only thing
+# about this that was ever arbitrary.
+export GIT_AUTHOR_DATE="2026-08-31T09:00:00+00:00"
+export GIT_COMMITTER_DATE="2026-08-31T09:00:00+00:00"
+
+ORIGIN="$WORK/memory.git"
+git init -q --bare "$ORIGIN"
+git symbolic-ref HEAD refs/heads/main --git-dir="$ORIGIN" 2>/dev/null || \
+  git -C "$ORIGIN" symbolic-ref HEAD refs/heads/main
+
+SEED="$WORK/seed"
+mkdir -p "$SEED"
+git init -q -b main "$SEED"
+git -C "$SEED" config user.email seed@example.com
+git -C "$SEED" config user.name seed
+run_plain seed-init "$SEED" "agsync init"
+sed 's/# Task 00 — Example task/# Task 02 — Rate limit the webhook intake/' \
+  "$SEED/tasks/00-example.md" > "$SEED/tasks/02-rate-limit.md"
+printf '| 02 | [02-rate-limit.md](02-rate-limit.md) | todo |\n' >> "$SEED/tasks/README.md"
+git -C "$SEED" add -A
+git -C "$SEED" -c core.hooksPath=.git/hooks commit -qm "scaffold memory"
+git -C "$SEED" remote add origin "$ORIGIN"
+git -C "$SEED" push -q origin main
+
+for who in a b; do
+  git clone -q "$ORIGIN" "$WORK/$who"
+  git -C "$WORK/$who" config user.email "$who@example.com"
+  git -C "$WORK/$who" config user.name "agent-$who"
+  PATH="$REPO/.venv/bin:$PATH" "$AG" install-hooks "$WORK/$who" >/dev/null
+  # Both claim the same task, neither having seen the other. The scaffold
+  # already carries empty Owner and Claimed at lines; a claim fills them in.
+  perl -0pi -e "s/\*\*Status:\*\* todo/**Status:** in-progress/;
+                s/\*\*Owner:\*\*\n/**Owner:** agent-$who\n/;
+                s/\*\*Claimed at:\*\*\n/**Claimed at:** 2026-08-31\n/" \
+    "$WORK/$who/tasks/00-example.md"
+  perl -0pi -e 's/\| 00 \| \[00-example\.md\]\(00-example\.md\) \| todo \|/| 00 | [00-example.md](00-example.md) | in-progress |/' \
+    "$WORK/$who/tasks/README.md"
+done
+
+run claim-a "$WORK/a" 'git commit -am "claim task 00"'
+run claim-b "$WORK/b" 'git commit -am "claim task 00"'
+# --no-progress only suppresses the meter a terminal would have overwritten in
+# place; everything git actually reports, and its colour, is kept.
+run push-a  "$WORK/a" "git push --no-progress origin main"
+run push-b  "$WORK/b" "git push --no-progress origin main"
+
+# agent-b drops its claim, takes the task that is actually free, and starts on
+# it without naming an owner — which the hook refuses.
+git -C "$WORK/b" fetch -q origin
+git -C "$WORK/b" reset -q --hard origin/main
+export GIT_AUTHOR_DATE="2026-08-31T09:06:00+00:00"
+export GIT_COMMITTER_DATE="2026-08-31T09:06:00+00:00"
+perl -0pi -e 's/\*\*Status:\*\* todo\n/**Status:** in-progress\n/' "$WORK/b/tasks/02-rate-limit.md"
+perl -0pi -e 's/\| 02 \| \[02-rate-limit\.md\]\(02-rate-limit\.md\) \| todo \|/| 02 | [02-rate-limit.md](02-rate-limit.md) | in-progress |/' "$WORK/b/tasks/README.md"
+run start-b "$WORK/b" 'git commit -am "start task 02"'
+
 # 4 + 5 — replay needs real git history.
 if [ -n "${AGSYNC_REPLAY_REPO:-}" ]; then
   TARGET="$AGSYNC_REPLAY_REPO"
