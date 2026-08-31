@@ -44,11 +44,18 @@ pty (`scripts/pty-run.py`) so they emit their real ANSI; installers do not,
 because they draw a spinner and erase it, which a terminal consumes and a
 capture keeps — piped, they print the settled lines a person is left with.
 
-The installs use `git+https://github.com/gabrielft-me/agsync`, which is what
-actually works today: the name is on neither registry yet. That spec is both
-what runs and what the page displays, since the output names the URL and a
-shorter command line above it would contradict it. Set `AGSYNC_SPEC=agsync`
-once it is published and both shorten together. `src/lib/ansi.ts` turns the escapes into spans
+agsync is not on PyPI yet, so `uv tool install agsync` is captured against a
+local index built from the repository's own wheel. uv names neither the index
+nor the file anywhere in its output, so what is recorded is character-for-
+character what the published command prints — nothing about it is written by
+hand. Set `AGSYNC_INDEX=` (empty) once the name is live and it captures from
+PyPI proper.
+
+pip is deliberately absent until then. For a non-default index it prints
+`Looking in indexes` and `Processing <path>`, and the second is not merely
+extra — from PyPI that line reads `Downloading ...`, so there is no honest way
+to show it yet. The switcher reappears on its own when a second installer is
+added back to `installs` in `Screen.astro`. `src/lib/ansi.ts` turns the escapes into spans
 at build time. Never edit `scenes.ts` by hand.
 
 Scenes 4 and 5 (`agsync replay`) need a repository with history. By default the

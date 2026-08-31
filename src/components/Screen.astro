@@ -16,13 +16,9 @@ import { toPlain } from "../lib/ansi";
 import { trim } from "../lib/trim";
 import { links } from "../config";
 
-// Installing it. Neither registry has the name yet, so the runnable command
-// is the git one, and it is the command shown — the output names the URL and a
-// shorter line above it would contradict it.
-const installs = [
-  { id: "uv", label: "uv", scene: byId("install-uv") },
-  { id: "pip", label: "pip", scene: byId("install-pip") },
-];
+// Installing it. pip is absent until agsync is on PyPI — see the note in
+// scripts/capture-scenes.sh. Add it back here and the switcher returns with it.
+const installs = [{ id: "uv", label: "uv", scene: byId("install-uv") }];
 
 interface Step {
   scene: Scene;
@@ -282,7 +278,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
                     data-title="agent-memory — zsh"
                     data-exit-code={v.steps.at(-1)!.scene.exit}
                   >
-                    {v.steps.some((st) => st.install) && (
+                    {installs.length > 1 && v.steps.some((st) => st.install) && (
                       <div class="install-tabs" role="group" aria-label="Package manager">
                         {installs.map((inst, k) => (
                           <button
@@ -300,6 +296,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
                     {v.steps.map((st, k) => (
                       <div
                         data-step
+                        data-typist={st.typist}
                         data-install={st.install}
                         hidden={st.install ? k !== 0 : undefined}
                         class:list={["step", k > 0 && "mt-6"]}
@@ -544,7 +541,18 @@ const pad = (n: number) => String(n).padStart(2, "0");
       const next = () => {
         const step = steps[i++];
         if (!step) return done();
-        typeCommand(step, animate, () => printOutput(step, animate, next));
+
+        const start = () => {
+          // The window changes hands here. It stays changed for the rest of
+          // the scene: what is driving it did not hand it back.
+          if (step.dataset.typist === "agent") panel.dataset.typist = "agent";
+          typeCommand(step, animate, () => printOutput(step, animate, next));
+        };
+
+        // Long enough after the last output that the next command reads as a
+        // second thing happening, not a continuation of the first.
+        if (animate && i > 1) printTimer = window.setTimeout(start, 900);
+        else start();
       };
       next();
     };
@@ -652,6 +660,8 @@ const pad = (n: number) => String(n).padStart(2, "0");
       // the status lands last. Arriving any other way, it is simply already
       // run — nobody wants to sit through it twice.
       const plays = previous === 0 && n === 1;
+      delete panel.dataset.typist;
+
       if (plays) {
         exitEl.textContent = "";
         delete panel.dataset.flash;

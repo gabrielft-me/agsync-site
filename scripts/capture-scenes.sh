@@ -47,19 +47,34 @@ run_plain() {
   printf '%s' "$status" > "$RAW/$id.status"
 }
 
-# Installing it. Neither registry has the name yet, so the runnable command
-# today is the git one — and it is the one shown, because the output names the
-# URL and a shorter command line above it would contradict it. When agsync is
-# published, AGSYNC_SPEC becomes "agsync" and both of these shorten with it.
-SPEC="${AGSYNC_SPEC:-git+https://github.com/gabrielft-me/agsync}"
+# Installing it.
+#
+# agsync is not on PyPI yet, so `uv tool install agsync` cannot be captured
+# against the real index. It is captured against a local one built from this
+# repository's own wheel instead — and uv names neither the index nor the file
+# anywhere in its output, so what is recorded is character-for-character what
+# the published command prints. Nothing about the install is written by hand.
+#
+# Once the name is live, set AGSYNC_INDEX= (empty) and this captures from PyPI
+# proper. pip is deliberately absent until then: it prints "Looking in indexes"
+# and "Processing <path>" for a non-default index, and the second of those is
+# not merely extra — from PyPI it reads "Downloading ...", so there is no
+# honest way to show it yet. Restore it here and in Screen.astro's `installs`.
+INDEX="$WORK/index"
+mkdir -p "$INDEX/simple/agsync"
+( cd "$REPO" && uv build --wheel --out-dir "$INDEX/simple/agsync" ) >/dev/null 2>&1
+WHEEL="$(basename "$INDEX"/simple/agsync/*.whl)"
+printf '<!DOCTYPE html><html><body><a href="%s">%s</a></body></html>' \
+  "$WHEEL" "$WHEEL" > "$INDEX/simple/agsync/index.html"
+
+AGSYNC_INDEX="${AGSYNC_INDEX-file://$INDEX/simple}"
+INDEX_FLAG=""
+[ -n "$AGSYNC_INDEX" ] && INDEX_FLAG="--index-url $AGSYNC_INDEX"
 
 # uv installs into the caller's tool directory, so point it somewhere temporary
 # rather than leaving a tool behind on whoever ran this.
 UV_TOOL_DIR="$WORK/uv/dir" UV_TOOL_BIN_DIR="$WORK/uv/bin" \
-  run_plain install-uv "$WORK" "uv tool install $SPEC"
-
-python3 -m venv "$WORK/venv" >/dev/null
-run_plain install-pip "$WORK" "'$WORK/venv/bin/pip' install $SPEC"
+  run_plain install-uv "$WORK" "uv tool install $INDEX_FLAG agsync"
 
 # 1 + 2 — the same command against a repo that decayed and one that has not.
 run 1 "$REPO" "agsync check tests/fixtures/decayed"

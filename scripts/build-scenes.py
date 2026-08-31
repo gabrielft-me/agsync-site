@@ -12,13 +12,7 @@ import sys
 # page types after it. The displayed command is what was run, with one
 # exception noted below.
 SCENES = [
-    ("install-uv", "install-uv",
-     "uv tool install git+https://github.com/gabrielft-me/agsync", None),
-    # Captured through a throwaway venv's pip so nothing lands on the machine
-    # running this; pip does not print its own path, so the output is identical
-    # to what the displayed command produces.
-    ("install-pip", "install-pip",
-     "pip install git+https://github.com/gabrielft-me/agsync", None),
+    ("install-uv", "install-uv", "uv tool install agsync", None),
     ("check-rot", "1", "agsync check", "this is a real repo, anonymised"),
     ("check-clean", "2", "agsync check", "after someone fixed it"),
     ("rules", "3", "agsync rules", None),
@@ -28,8 +22,8 @@ SCENES = [
     ("init", "7", "agsync init", None),
 ]
 
-# uv warns that the temporary bin directory this script points it at is not on
-# PATH. That is an artifact of capturing in isolation, not of the command.
+# uv warns that the temporary bin and tool directories this script points it at
+# are not on PATH. An artifact of capturing in isolation, not of the command.
 ISOLATION_NOISE = re.compile(
     r"\nwarning: `[^`]*` is not on your PATH\..*$", re.S
 )

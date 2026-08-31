@@ -600,3 +600,12 @@ html[data-app] body {
   background: rgb(255 255 255 / 0.08);
   color: var(--color-fg);
 }
+
+/* The window changes hands. Once an agent is typing into it the surface is not
+   quite the one a person was typing into a moment ago — the accent already
+   means "agsync's own" everywhere else on the page, so a trace of it is enough
+   and a label would be worse. */
+.panel[data-typist="agent"] {
+  background: color-mix(in srgb, var(--color-accent) 7%, var(--color-terminal));
+}
+.panel { transition-property: border-color, box-shadow, background-color; }

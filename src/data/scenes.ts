@@ -12,17 +12,10 @@ export interface Scene {
 export const scenes: Scene[] = [
   {
     id: "install-uv",
-    command: "uv tool install git+https://github.com/gabrielft-me/agsync",
+    command: "uv tool install agsync",
     note: null,
     exit: 0,
-    output: "Resolved 1 package in 8ms\nInstalled 1 package in 5ms\n + agsync==0.1.0 (from git+https://github.com/gabrielft-me/agsync@d78bc6a6cd74fecc9877132cecaf95ff1cdd80f6)\nInstalled 1 executable: agsync",
-  },
-  {
-    id: "install-pip",
-    command: "pip install git+https://github.com/gabrielft-me/agsync",
-    note: null,
-    exit: 0,
-    output: "Collecting git+https://github.com/gabrielft-me/agsync\n  Cloning https://github.com/gabrielft-me/agsync to /private/var/folders/tp/frsg8twj4s55qxrdmh_f7kg40000gn/T/pip-req-build-grk38yo9\n  Running command git clone --filter=blob:none --quiet https://github.com/gabrielft-me/agsync /private/var/folders/tp/frsg8twj4s55qxrdmh_f7kg40000gn/T/pip-req-build-grk38yo9\n  Resolved https://github.com/gabrielft-me/agsync to commit d78bc6a6cd74fecc9877132cecaf95ff1cdd80f6\n  Installing build dependencies: started\n  Installing build dependencies: finished with status 'done'\n  Getting requirements to build wheel: started\n  Getting requirements to build wheel: finished with status 'done'\n  Preparing metadata (pyproject.toml): started\n  Preparing metadata (pyproject.toml): finished with status 'done'\nBuilding wheels for collected packages: agsync\n  Building wheel for agsync (pyproject.toml): started\n  Building wheel for agsync (pyproject.toml): finished with status 'done'\n  Created wheel for agsync: filename=agsync-0.1.0-py3-none-any.whl size=34511 sha256=f0559fc90bc22fcdb494a67aea0340860acbc48f2fd0d3c366b387fb27aea1da\n  Stored in directory: /private/var/folders/tp/frsg8twj4s55qxrdmh_f7kg40000gn/T/pip-ephem-wheel-cache-l9xc1z6o/wheels/06/fb/98/0ca5e8dab5d2ffb4495131ac3dd018b25b8f6e4f0856332c72\nSuccessfully built agsync\nInstalling collected packages: agsync\nSuccessfully installed agsync-0.1.0\n\n[notice] A new release of pip is available: 24.2 -> 26.2.1\n[notice] To update, run: python3.12 -m pip install --upgrade pip",
+    output: "Resolved 1 package in 2ms\nPrepared 1 package in 5ms\nInstalled 1 package in 2ms\n + agsync==0.1.0\nInstalled 1 executable: agsync",
   },
   {
     id: "check-rot",
