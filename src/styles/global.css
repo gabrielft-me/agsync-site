@@ -623,6 +623,10 @@ html[data-app] body {
   position: relative;
   display: inline-block;
   width: 1ch;
+  /* The gap belongs to the prompt, the way the `$ ` carries its own trailing
+     space. In the markup it was a whitespace-only span, which Astro collapses
+     to nothing, so the mark sat flush against the command. */
+  margin-right: 1ch;
   text-align: center;
   color: var(--color-accent);
 }

@@ -289,7 +289,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
                           <p class="race-who">{side.who}</p>
                           {side.steps.map((scene) => (
                             <div class="race-run">
-                              <p class="term-line"><AgentMark />{" "}<span class="text-fg">{scene.command}</span></p>
+                              <p class="term-line"><AgentMark /><span class="text-fg">{scene.command}</span></p>
                               <div class="mt-2">
                                 {trim(scene).map((row) => <TermRow row={row} />)}
                               </div>
@@ -302,7 +302,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
                     {/* The rule's message is the argument, and it does not
                         survive half a window, so the split ends here. */}
                     <div class="race-after">
-                      <p class="term-line"><AgentMark />{" "}<span class="text-fg">{v.race!.after.command}</span></p>
+                      <p class="term-line"><AgentMark /><span class="text-fg">{v.race!.after.command}</span></p>
                       <div class="mt-2">
                         {trim(v.race!.after).map((row) => <TermRow row={row} />)}
                       </div>
@@ -376,7 +376,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
                         class="step"
                       >
                         <p class="term-line">{st.typist === "agent" ? (
-                            <Fragment><AgentMark /><span> </span></Fragment>
+                            <AgentMark />
                           ) : (
                             <span class="text-accent">$ </span>
                           )}<span
