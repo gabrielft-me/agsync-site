@@ -206,8 +206,8 @@ h1 {
 .term-line {
   font-family: var(--font-mono);
   /* Width sets the size; a short window still has to shrink it. */
-  font-size: clamp(0.5625rem, min(0.42vw + 0.34rem, 1.35vh), 0.8125rem);
-  line-height: 1.62;
+  font-size: clamp(0.625rem, min(0.5vw + 0.4rem, 1.8vh), 0.9375rem);
+  line-height: 1.8;
   /* One finding, one line, always. A message too long for the window is cut
      with an ellipsis rather than wrapped — a second line for one finding is
      what makes a dense scene unreadable. */
@@ -275,8 +275,28 @@ html[data-app] body {
   pointer-events: auto;
 }
 
+/* Expanded, the body is bounded top and bottom so the restored lines scroll
+   inside the window instead of being clipped by it. */
+[data-app] .scene-body[data-expanded] {
+  bottom: 0;
+  overflow-y: auto;
+}
+
+.scene-extra { display: none; }
+[data-expanded] .scene-extra { display: block; }
+
+.scene-elision {
+  display: block;
+  width: 100%;
+  text-align: left;
+  color: var(--color-subtle);
+  cursor: pointer;
+  transition: color 150ms ease-out;
+}
+.scene-elision:hover { color: var(--color-muted); }
+
 @media (min-width: 1024px) {
-  [data-app] .scene-body { padding: 1.25rem 1.5rem; }
+  [data-app] .scene-body { padding: 1.5rem 2rem; }
 }
 
 .scene-label {

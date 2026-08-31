@@ -45,7 +45,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
   <main
     class="frame flex min-h-0 flex-1 flex-col gap-8 py-8 lg:grid lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start lg:gap-20 lg:py-20"
   >
-    <div>
+    <div class="lg:self-center">
       <h1 class="text-[2.375rem]">ESLint for your agents&rsquo; memory</h1>
 
       <div class="rail-app mt-16">
@@ -101,12 +101,22 @@ const pad = (n: number) => String(n).padStart(2, "0");
                   <div class="mt-3">
                     {s.rows.map((row) =>
                       row.kind === "elision" ? (
-                        <p class="term-line text-subtle">{`   ${row.text}`}</p>
-                      ) : row.spans.length === 0 ? (
-                        <p class="term-line">&nbsp;</p>
+                        <button
+                          type="button"
+                          data-expand
+                          data-more={row.text}
+                          aria-expanded="false"
+                          class="term-line scene-elision"
+                        >
+                          {`   … ${row.text}`}
+                        </button>
                       ) : (
-                        <p class="term-line">
-                          {row.spans.map((sp) => <span class={sp.cls}>{sp.text}</span>)}
+                        <p class:list={["term-line", row.extra && "scene-extra"]}>
+                          {row.spans.length === 0 ? (
+                            <span>&nbsp;</span>
+                          ) : (
+                            row.spans.map((sp) => <span class={sp.cls}>{sp.text}</span>)
+                          )}
                         </p>
                       ),
                     )}
@@ -123,7 +133,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
       </div>
 
       <ol
-        class="rail-ticks mt-8 gap-4 lg:absolute lg:right-full lg:top-0 lg:mt-0 lg:mr-6 lg:flex-col lg:gap-0"
+        class="rail-ticks mt-8 gap-4 lg:absolute lg:right-full lg:top-1/2 lg:mt-0 lg:mr-6 lg:-translate-y-1/2 lg:flex-col lg:gap-0"
         role="list"
       >
         {
@@ -194,6 +204,21 @@ const pad = (n: number) => String(n).padStart(2, "0");
     let index = -1;
     let flashTimer = 0;
 
+    // An elision is a control, not a caption: it puts the lines it stands for
+    // back in their original places.
+    const label = (btn: HTMLElement, open: boolean) => {
+      btn.textContent = open ? "   … collapse" : `   … ${btn.dataset.more}`;
+      btn.setAttribute("aria-expanded", String(open));
+    };
+
+    const collapse = (body: HTMLElement) => {
+      if (!body.hasAttribute("data-expanded")) return;
+      body.removeAttribute("data-expanded");
+      for (const btn of body.querySelectorAll<HTMLElement>("[data-expand]")) {
+        label(btn, false);
+      }
+    };
+
     // The window grows downward from a top edge that never moves, and stops at
     // the bottom of the content area. A scene that would overrun it has too
     // much output and belongs in src/lib/trim.ts, not in a scrollbar.
@@ -206,7 +231,13 @@ const pad = (n: number) => String(n).padStart(2, "0");
         pad -
         panel.getBoundingClientRect().top -
         chrome.offsetHeight;
-      stack.style.height = `${Math.max(0, Math.min(body.scrollHeight, room))}px`;
+      // Wide enough for two columns: the window fills the height it is given,
+      // the way a terminal you opened yourself would, and its top and bottom
+      // edges stay put between scenes. Stacked, it shrinks to its output so
+      // the page below it stays reachable.
+      const fills = matchMedia("(min-width: 1024px)").matches;
+      const h = fills ? room : Math.min(body.scrollHeight, room);
+      stack.style.height = `${Math.max(0, h)}px`;
     };
 
     const show = (next: number) => {
@@ -219,6 +250,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
         b.toggleAttribute("data-on", on);
         // Keeps six terminals' worth of output out of the accessibility tree.
         b.inert = !on;
+        collapse(b);
       });
       labels.forEach((l, j) => l.toggleAttribute("data-on", j === n));
       ticks.forEach((t, j) => {
@@ -246,6 +278,14 @@ const pad = (n: number) => String(n).padStart(2, "0");
     requestAnimationFrame(() => (stack.style.transition = ""));
 
     addEventListener("resize", fit, { passive: true });
+
+    stack.addEventListener("click", (e) => {
+      const btn = (e.target as Element).closest<HTMLElement>("[data-expand]");
+      const body = btn?.closest<HTMLElement>(".scene-body");
+      if (!btn || !body) return;
+      label(btn, body.toggleAttribute("data-expanded"));
+      fit();
+    });
 
     // ---- advancing ------------------------------------------------------
     // Nothing here ever translates the layout; the gesture only changes which

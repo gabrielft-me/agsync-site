@@ -1,10 +1,11 @@
 /**
  * Cuts each scene down to the shortest form that still proves its point.
  *
- * This only ever *selects* lines out of the captured output and records how
- * many it dropped — it never writes a line. Every cut renders as a visible
- * elision, because a silent truncation is indistinguishable from a tool that
- * found less than it did.
+ * This only ever *marks* lines out of the captured output and counts them — it
+ * never writes one. Every cut renders as a visible elision, and the elision is
+ * a control: clicking it puts the hidden lines back in their original places,
+ * so the full output is always one click away and nothing is destroyed on the
+ * way to the page.
  *
  * The rules assert the shape they expect. If a re-capture changes the output,
  * the build fails here rather than quietly showing the wrong three findings.
@@ -13,7 +14,7 @@ import type { Scene } from "../data/scenes";
 import { toLines, toPlain, type Span } from "./ansi";
 
 export type Row =
-  | { kind: "line"; spans: Span[] }
+  | { kind: "line"; spans: Span[]; extra: boolean }
   | { kind: "elision"; text: string };
 
 const FINDING = /^\s*(?:\d+|-)\s+(?:error|warn)\s/;
@@ -33,7 +34,8 @@ function split(scene: Scene) {
   return { spans, plain };
 }
 
-const line = (spans: Span[]): Row => ({ kind: "line", spans });
+const shown = (spans: Span[]): Row => ({ kind: "line", spans, extra: false });
+const extra = (spans: Span[]): Row => ({ kind: "line", spans, extra: true });
 
 const PLANS: Record<number, (scene: Scene) => Row[]> = {
   // `agsync check` on a repo that decayed: three findings that are damning on
@@ -53,36 +55,34 @@ const PLANS: Record<number, (scene: Scene) => Row[]> = {
     const last = plain.findLastIndex((l) => FINDING.test(l));
     assert(last > 0, "no findings in the check output");
 
-    const out: Row[] = [];
-    let shown = 0;
+    const rows: Row[] = [];
+    let kept = 0;
 
     for (let i = 0; i <= last; i++) {
       const text = plain[i]!;
-      if (FINDING.test(text)) {
-        if (wanted.some((re) => re.test(text))) {
-          out.push(line(spans[i]!));
-          shown++;
-        }
-      } else if (files.has(text.trim())) {
-        out.push(line(spans[i]!));
-      }
+      const keep = FINDING.test(text)
+        ? wanted.some((re) => re.test(text))
+        : files.has(text.trim());
+      rows.push(keep ? shown(spans[i]!) : extra(spans[i]!));
+      if (keep && FINDING.test(text)) kept++;
     }
 
-    assert(shown === wanted.length, `expected ${wanted.length} findings, kept ${shown}`);
-    out.push({ kind: "elision", text: `… ${findings - shown} more findings` });
+    assert(kept === wanted.length, `expected ${wanted.length} findings, kept ${kept}`);
+    rows.push({ kind: "elision", text: `${findings - kept} more findings` });
 
-    for (let i = last + 1; i < spans.length; i++) out.push(line(spans[i]!));
-    return out;
+    for (let i = last + 1; i < spans.length; i++) rows.push(shown(spans[i]!));
+    return rows;
   },
 
   // `agsync rules`: five of them, and an honest count of the rest.
   3(scene) {
     const { spans } = split(scene);
-    const shown = 5;
-    assert(spans.length > shown, "fewer rules than the plan expects");
+    const cut = 5;
+    assert(spans.length > cut, "fewer rules than the plan expects");
     return [
-      ...spans.slice(0, shown).map(line),
-      { kind: "elision", text: `… ${spans.length - shown} more` },
+      ...spans.slice(0, cut).map(shown),
+      { kind: "elision", text: `${spans.length - cut} more` },
+      ...spans.slice(cut).map(extra),
     ];
   },
 
@@ -93,13 +93,14 @@ const PLANS: Record<number, (scene: Scene) => Row[]> = {
     const start = plain.findIndex((l) => /^rule\s+first failed\s+survived/.test(l));
     assert(start > 0, "survival table header not found");
     return [
-      { kind: "elision", text: `… ${start} lines` },
-      ...spans.slice(start).map(line),
+      { kind: "elision", text: `${start} lines` },
+      ...spans.slice(0, start).map(extra),
+      ...spans.slice(start).map(shown),
     ];
   },
 };
 
 export function trim(scene: Scene): Row[] {
   const plan = PLANS[scene.n];
-  return plan ? plan(scene) : toLines(scene.output).map(line);
+  return plan ? plan(scene) : toLines(scene.output).map(shown);
 }
