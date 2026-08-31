@@ -523,11 +523,16 @@ const pad = (n: number) => String(n).padStart(2, "0");
           typeRaf = requestAnimationFrame(frame);
         } else {
           // Hold the cursor a beat at the end of the line, the way a hand
-          // rests before it hits return.
-          typeHold = window.setTimeout(() => {
-            step.removeAttribute("data-typing");
-            done?.();
-          }, 420);
+          // rests before it hits return — but only when something is about to
+          // come back. A command that prints nothing should not sit there.
+          const prints = step.querySelector("[data-out]")?.children.length;
+          typeHold = window.setTimeout(
+            () => {
+              step.removeAttribute("data-typing");
+              done?.();
+            },
+            prints ? 420 : 0,
+          );
         }
       };
       typeRaf = requestAnimationFrame(frame);
@@ -546,6 +551,11 @@ const pad = (n: number) => String(n).padStart(2, "0");
       for (const row of rows) row.removeAttribute("data-shown");
 
       if (!out || !animate) {
+        step.removeAttribute("data-running");
+        return done();
+      }
+
+      if (!rows.length) {
         step.removeAttribute("data-running");
         return done();
       }
@@ -667,15 +677,15 @@ const pad = (n: number) => String(n).padStart(2, "0");
         // then sit on an empty window for a moment — so what follows reads as a
         // second thing happening rather than a continuation of the first.
         const showing = steps.filter((s) => !s.hasAttribute("data-off"));
-        // A command that printed nothing leaves nothing to read, so it does not
-        // need to stand as long as one that did.
+        // A command that printed nothing leaves nothing to read, so the clear
+        // follows it as fast as it can rather than standing over an empty line.
         const printed = showing.at(-1)?.querySelector("[data-out]")?.children.length;
         printTimer = window.setTimeout(
           () => {
             for (const shown of showing) shown.setAttribute("data-fading", "");
             printTimer = window.setTimeout(start, 680); // 260ms fade, then empty
           },
-          printed ? 1400 : 840,
+          printed ? 1400 : 100,
         );
       };
       next();
