@@ -124,7 +124,15 @@ const pad = (n: number) => String(n).padStart(2, "0");
                             </svg>
                           )}
                           <span class="tree-name">{row.name}</span>
-                          {row.mark && <span class="tree-mark" aria-hidden="true">&larr;</span>}
+                          {row.mark && (
+                            <svg class="tree-mark" viewBox="0 0 40 14" aria-hidden="true">
+                              <path
+                                fill="none" stroke="currentColor" stroke-width="2.6"
+                                stroke-linecap="round" stroke-linejoin="round"
+                                d="M38.7 7H4.4M11 1.6L4.4 7l6.6 5.4"
+                              />
+                            </svg>
+                          )}
                         </p>
                       ))}
                     </div>
@@ -190,7 +198,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
                 aria-label={`Scene ${i + 1} of ${views.length}: ${v.label}`}
                 class="group flex h-4 w-8 items-start"
               >
-                <span class="h-px w-8 rounded-full bg-line-strong transition-all duration-200 group-hover:bg-muted group-data-[on]:h-0.5 group-data-[on]:bg-accent" />
+                <span class="h-px w-8 rounded-full bg-line-strong transition-all duration-200 group-hover:bg-muted group-data-[on]:h-0.5 group-data-[on]:bg-fg" />
               </button>
             </li>
           ))

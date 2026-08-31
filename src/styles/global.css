@@ -345,6 +345,7 @@ html[data-app] body {
   gap: 0.5rem;
   min-height: 1.5em;
   color: var(--color-fg);
+  position: relative;
 }
 
 /* Everything agsync does not read recedes, so the three paths it does read
@@ -364,13 +365,20 @@ html[data-app] body {
   flex: none;
   color: var(--color-muted);
 }
-.tree-row:not(.tree-dim) .tree-icon { color: var(--color-accent); }
+.tree-row:not(.tree-dim) .tree-icon { color: var(--color-fg); }
 
 .tree-name { white-space: pre; }
 
+/* The only accent in this scene. Parked in a column of its own so the three
+   marks stack into one vertical line instead of trailing three names of
+   different lengths. */
 .tree-mark {
-  margin-left: 0.75rem;
+  position: absolute;
+  left: 12em;
+  width: 4.25em;
+  height: 1.49em;
   color: var(--color-accent);
+  filter: drop-shadow(0 0 9px color-mix(in srgb, var(--color-accent) 70%, transparent));
 }
 
 /* The command types itself in on the way out of the tree, so the check is
