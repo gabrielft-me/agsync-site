@@ -541,3 +541,38 @@ html[data-app] body {
   transition: border-color 150ms ease-out;
 }
 .outro-button:hover { border-color: color-mix(in srgb, var(--color-fg) 40%, transparent); }
+
+/* ---------------------------------------------------------------------------
+   Playing a run.
+
+   Leaving the editor is the one transition where the command is not simply
+   there: it types itself in, the output prints under it, and the exit status
+   lands last. Everything here is state the script drives.
+   --------------------------------------------------------------------------- */
+.caret {
+  display: none;
+  width: 0.55em;
+  height: 1.05em;
+  translate: 0 0.16em;
+  background: var(--color-accent);
+}
+/* Solid while keys are landing — a terminal only blinks when it is waiting. */
+[data-typing] .caret { display: inline-block; }
+
+/* The comment is not part of what gets typed; it arrives once the line has. */
+[data-note] { transition: opacity 260ms ease-out; }
+[data-typing] [data-note] { opacity: 0; }
+
+/* Until the command has run there is no output. Hidden by opacity rather than
+   removed, so the window is already the right size and nothing reflows as the
+   lines land. */
+[data-running] [data-out] > * { opacity: 0; }
+[data-running] [data-out] > [data-shown] {
+  opacity: 1;
+  transition: opacity 140ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caret { display: none !important; }
+  [data-running] [data-out] > * { opacity: 1 !important; }
+}

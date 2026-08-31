@@ -258,7 +258,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
                         <span data-note class="text-subtle">   # {v.scene!.note}</span>
                       )}
                     </p>
-                    <div class="mt-3">
+                    <div data-out class="mt-3">
                       {trim(v.scene!).map((row) =>
                         row.kind === "elision" ? (
                           <button
@@ -376,22 +376,28 @@ const pad = (n: number) => String(n).padStart(2, "0");
     // plan itself lives in lib/typing.ts.
     let typeRaf = 0;
     let typeHold = 0;
+    let printTimer = 0;
 
     const stopTyping = () => {
       cancelAnimationFrame(typeRaf);
       clearTimeout(typeHold);
+      clearTimeout(printTimer);
     };
 
-    const typeCommand = (body: HTMLElement, animate: boolean) => {
+    const typeCommand = (
+      body: HTMLElement,
+      animate: boolean,
+      done?: () => void,
+    ) => {
       stopTyping();
       const el = body.querySelector<HTMLElement>("[data-cmd]");
       body.removeAttribute("data-typing");
-      if (!el) return;
+      if (!el) return done?.();
 
       const text = el.dataset.cmd ?? "";
       if (!animate) {
         el.textContent = text;
-        return;
+        return done?.();
       }
 
       const keys: { del?: true; c?: string; d: number }[] = JSON.parse(
@@ -399,7 +405,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
       );
       if (!keys.length) {
         el.textContent = text;
-        return;
+        return done?.();
       }
 
       body.setAttribute("data-typing", "");
@@ -419,14 +425,45 @@ const pad = (n: number) => String(n).padStart(2, "0");
         if (i < keys.length) {
           typeRaf = requestAnimationFrame(frame);
         } else {
-          // Hold the cursor a beat at the end of the line before it goes.
-          typeHold = window.setTimeout(
-            () => body.removeAttribute("data-typing"),
-            420,
-          );
+          // Hold the cursor a beat at the end of the line, the way a hand
+          // rests before it hits return.
+          typeHold = window.setTimeout(() => {
+            body.removeAttribute("data-typing");
+            done?.();
+          }, 420);
         }
       };
       typeRaf = requestAnimationFrame(frame);
+    };
+
+    // The command runs, and only then does it print. Rows are hidden by
+    // opacity rather than removed, so the window is already the right size and
+    // nothing reflows as the output lands.
+    const printOutput = (body: HTMLElement, animate: boolean, done: () => void) => {
+      const out = body.querySelector<HTMLElement>("[data-out]");
+      // The lines an elision is standing in for are display:none, so stepping
+      // through them would just be silent gaps in the middle of the output.
+      const rows = out
+        ? [...out.children].filter((row) => !row.classList.contains("scene-extra"))
+        : [];
+      for (const row of rows) row.removeAttribute("data-shown");
+
+      if (!out || !animate) {
+        body.removeAttribute("data-running");
+        return done();
+      }
+
+      let i = 0;
+      const step = () => {
+        if (i >= rows.length) {
+          body.removeAttribute("data-running");
+          return done();
+        }
+        rows[i++]!.setAttribute("data-shown", "");
+        printTimer = window.setTimeout(step, 38);
+      };
+      // The beat between hitting return and the first line landing.
+      printTimer = window.setTimeout(step, 300);
     };
 
     const collapse = (body: HTMLElement) => {
@@ -489,6 +526,9 @@ const pad = (n: number) => String(n).padStart(2, "0");
         // Keeps six terminals' worth of output out of the accessibility tree.
         b.inert = !on;
         collapse(b);
+        // Leaving mid-run must not strand a scene with its output still
+        // invisible; the timers are cancelled, the state has to go too.
+        b.removeAttribute("data-running");
       });
       labels.forEach((l, j) => l.toggleAttribute("data-on", j === n));
       ticks.forEach((t, j) => {
@@ -499,14 +539,19 @@ const pad = (n: number) => String(n).padStart(2, "0");
       countEl.textContent = `${String(n + 1).padStart(2, "0")} / ${total}`;
 
       chromeTitle.textContent = bodies[n]!.dataset.title ?? "";
-      typeCommand(bodies[n]!, previous === 0 && n === 1);
 
-      // The tree ran nothing, so it has no exit status and nothing to flash.
-      const raw = bodies[n]!.dataset.exitCode;
-      if (raw === undefined) {
-        exitEl.textContent = "";
-        delete panel.dataset.flash;
-      } else {
+      const body = bodies[n]!;
+
+      // The exit status is the last thing a run produces, so when the run is
+      // played out it arrives last here too. The tree ran nothing, so it has
+      // no status and nothing to flash.
+      const settle = () => {
+        const raw = body.dataset.exitCode;
+        if (raw === undefined) {
+          exitEl.textContent = "";
+          delete panel.dataset.flash;
+          return;
+        }
         const code = Number(raw);
         exitEl.textContent = `exit ${code}`;
         exitEl.dataset.code = code === 0 ? "ok" : "err";
@@ -514,7 +559,19 @@ const pad = (n: number) => String(n).padStart(2, "0");
         panel.dataset.flash = code === 0 ? "ok" : "err";
         clearTimeout(flashTimer);
         flashTimer = window.setTimeout(() => delete panel.dataset.flash, 260);
+      };
+
+      // Leaving the editor is the one transition where the run is played out
+      // in order: the command types itself in, the output prints under it, and
+      // the status lands last. Arriving any other way, it is simply already
+      // run — nobody wants to sit through it twice.
+      const plays = previous === 0 && n === 1;
+      if (plays) {
+        exitEl.textContent = "";
+        delete panel.dataset.flash;
+        body.setAttribute("data-running", "");
       }
+      typeCommand(body, plays, () => printOutput(body, plays, settle));
 
       fit();
     };
