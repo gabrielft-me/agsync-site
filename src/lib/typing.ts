@@ -42,6 +42,8 @@ export function plan(
   /** Squeeze the whole line into roughly this long. A URL typed at a true human
    *  pace is four seconds of watching someone type a URL. */
   budgetMs?: number,
+  /** Two transpositions in one scene reads as sloppy rather than as a person. */
+  withTypo = true,
 ): Key[] {
   const keys: Key[] = [];
   let prev = "";
@@ -57,7 +59,7 @@ export function plan(
   const tail = text.slice(at);
 
   // Too short to transpose, or the swap would be invisible: just type it.
-  if (at < 2 || tail[0] === tail[1]) {
+  if (!withTypo || at < 2 || tail[0] === tail[1]) {
     type(0, text.length);
     return budgetMs ? squeeze(keys, budgetMs) : keys;
   }

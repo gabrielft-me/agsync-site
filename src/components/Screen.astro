@@ -21,16 +21,27 @@ import { links } from "../config";
 const installs = [{ id: "pip", label: "pip", scene: byId("install-pip") }];
 
 interface Step {
-  scene: Scene;
-  /** A person types the install; the agent runs what it installed. */
+  command: string;
+  note?: string | null;
+  /** Absent when the command has no output worth showing — starting an agent. */
+  scene?: Scene;
+  /** A person installs it and starts the agent; the agent runs the rest. */
   typist: "human" | "agent";
+  /** False when the command follows in the same window rather than a fresh one. */
+  clears?: false;
   install?: string;
 }
 
-// Getting the package is the only thing a person types on this page; every
-// command after it is the agent's, and carries its mark instead of a prompt.
-const human = (scene: Scene): Step => ({ scene, typist: "human" });
-const agent = (scene: Scene): Step => ({ scene, typist: "agent" });
+// A person installs it and starts the agent. Everything after that is the
+// agent's, and carries its mark instead of a prompt.
+const from = (scene: Scene, typist: "human" | "agent"): Step => ({
+  command: scene.command,
+  note: scene.note,
+  scene,
+  typist,
+});
+const human = (scene: Scene): Step => from(scene, "human");
+const agent = (scene: Scene): Step => from(scene, "agent");
 
 // The tree is the resting state, so it is view 1; the captured runs follow,
 // and the closing prose takes the same window at the end.
@@ -42,6 +53,9 @@ const views = [
     // The install is typed by hand, badly; what follows is not.
     steps: [
       ...installs.map(({ id, scene }) => ({ ...human(scene), install: id })),
+      // Starting the agent, in the window the install just finished in. The one
+      // command here that shows no output, because what it starts is the point.
+      { command: "claude", typist: "human" as const, clears: false as const },
       agent(byId("check-rot")),
     ],
   },
@@ -64,8 +78,8 @@ const round = (keys: { d: number }[]) =>
 
 const keystrokes = (step: Step) =>
   step.typist === "agent"
-    ? round(steady(step.scene.command))
-    : round(plan(step.scene.command, Math.random, 1700));
+    ? round(steady(step.command))
+    : round(plan(step.command, Math.random, 1700, step.clears !== false));
 
 const firstDoc = docs.find((d) => d.id === DEFAULT_DOC)!;
 
@@ -280,7 +294,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
                   <div
                     class="scene-body"
                     data-title="agent-memory — zsh"
-                    data-exit-code={v.steps.at(-1)!.scene.exit}
+                    data-exit-code={v.steps.at(-1)!.scene!.exit}
                   >
                     {installs.length > 1 && v.steps.some((st) => st.install) && (
                       <div class="install-tabs" role="group" aria-label="Package manager">
@@ -301,6 +315,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
                       <div
                         data-step
                         data-typist={st.typist}
+                        data-clears={st.clears === false ? "false" : undefined}
                         data-install={st.install}
                         hidden={st.install ? k !== 0 : undefined}
                         class="step"
@@ -317,19 +332,19 @@ const pad = (n: number) => String(n).padStart(2, "0");
                           ) : (
                             <span class="text-accent">$ </span>
                           )}<span
-                            data-cmd={st.scene.command}
+                            data-cmd={st.command}
                             data-plan={keystrokes(st)}
                             class="text-fg"
-                          >{st.scene.command}</span><span
+                          >{st.command}</span><span
                             data-caret
                             class="caret"
                             aria-hidden="true"
-                          />{st.scene.note && (
-                            <span data-note class="text-subtle">   # {st.scene.note}</span>
+                          />{st.note && (
+                            <span data-note class="text-subtle">   # {st.note}</span>
                           )}
                         </p>
                         <div data-out class="mt-3">
-                          {trim(st.scene).map((row) =>
+                          {(st.scene ? trim(st.scene) : []).map((row) =>
                             row.kind === "elision" ? (
                               <button
                                 type="button"
@@ -355,11 +370,15 @@ const pad = (n: number) => String(n).padStart(2, "0");
                     ))}
 
                     <p class="scene-exit mt-3 font-mono text-[0.6875rem] text-subtle">
-                      exit {v.steps.at(-1)!.scene.exit}
+                      exit {v.steps.at(-1)!.scene!.exit}
                     </p>
                     <pre class="sr-only">
                       {v.steps
-                        .map((st) => `$ ${st.scene.command}\n${toPlain(st.scene.output)}`)
+                        .map((st) =>
+                          st.scene
+                            ? `$ ${st.command}\n${toPlain(st.scene.output)}`
+                            : `$ ${st.command}`,
+                        )
                         .join("\n\n")}
                       {`\nexit ${v.steps.at(-1)!.scene.exit}`}
                     </pre>
@@ -551,14 +570,23 @@ const pad = (n: number) => String(n).padStart(2, "0");
     const stepsOf = (body: HTMLElement) =>
       [...body.querySelectorAll<HTMLElement>("[data-step]")].filter((el) => !el.hidden);
 
-    // One command on screen at a time: the window is cleared between them, the
-    // way you clear it yourself before handing it to something else.
-    const only = (body: HTMLElement, k: number) => {
-      stepsOf(body).forEach((step, j) => {
-        step.toggleAttribute("data-off", j !== k);
+    // Show everything from the last clear up to step k. Most commands get a
+    // fresh window; one follows in the window the last one finished in, and
+    // that is the difference between running a tool and starting something.
+    const upTo = (body: HTMLElement, k: number) => {
+      const steps = stepsOf(body);
+      let from = 0;
+      for (let j = k; j >= 0; j--) {
+        if (steps[j]?.dataset.clears !== "false") {
+          from = j;
+          break;
+        }
+      }
+      steps.forEach((step, j) => {
+        step.toggleAttribute("data-off", j < from || j > k);
         step.removeAttribute("data-fading");
       });
-      body.querySelector(".install-tabs")?.toggleAttribute("data-off", k !== 0);
+      body.querySelector(".install-tabs")?.toggleAttribute("data-off", from !== 0);
     };
 
     // A scene at rest: cleared, showing whatever ran last, fully printed. A
@@ -568,7 +596,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
     const reset = (body: HTMLElement) => {
       const steps = stepsOf(body);
       if (!steps.length) return;
-      only(body, steps.length - 1);
+      upTo(body, steps.length - 1);
       for (const step of steps) {
         step.removeAttribute("data-typing");
         step.removeAttribute("data-running");
@@ -619,25 +647,36 @@ const pad = (n: number) => String(n).padStart(2, "0");
           // when printing starts leaves it visible for the whole of the typing,
           // which is the one thing the typing is there to precede.
           step.setAttribute("data-running", "");
-          only(body, i - 1);
+          upTo(body, i - 1);
           // The window changes hands here, and stays changed for the rest of
           // the scene: what is driving it did not hand it back.
           if (step.dataset.typist === "agent") panel.dataset.typist = "agent";
           typeCommand(step, true, () => printOutput(step, true, next));
         };
 
-        if (i > 1) {
-          // Let the output stand long enough to be read, then clear, then sit
-          // on an empty window for a moment — so what follows reads as a second
-          // thing happening rather than a continuation of the first.
-          const previous = steps[i - 2]!;
-          printTimer = window.setTimeout(() => {
-            previous.setAttribute("data-fading", "");
-            printTimer = window.setTimeout(start, 680); // 260ms fade, then empty
-          }, 1400);
-        } else {
-          start();
+        if (i === 1) return start();
+
+        if (step.dataset.clears === "false") {
+          // Same window. Long enough to have read what is above it, and then
+          // the next line simply follows.
+          printTimer = window.setTimeout(start, 700);
+          return;
         }
+
+        // Let what is on screen stand long enough to be read, then clear it,
+        // then sit on an empty window for a moment — so what follows reads as a
+        // second thing happening rather than a continuation of the first.
+        const showing = steps.filter((s) => !s.hasAttribute("data-off"));
+        // A command that printed nothing leaves nothing to read, so it does not
+        // need to stand as long as one that did.
+        const printed = showing.at(-1)?.querySelector("[data-out]")?.children.length;
+        printTimer = window.setTimeout(
+          () => {
+            for (const shown of showing) shown.setAttribute("data-fading", "");
+            printTimer = window.setTimeout(start, 680); // 260ms fade, then empty
+          },
+          printed ? 1400 : 840,
+        );
       };
       next();
     };
