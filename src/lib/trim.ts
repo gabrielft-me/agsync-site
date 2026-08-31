@@ -37,11 +37,11 @@ function split(scene: Scene) {
 const shown = (spans: Span[]): Row => ({ kind: "line", spans, extra: false });
 const extra = (spans: Span[]): Row => ({ kind: "line", spans, extra: true });
 
-const PLANS: Record<number, (scene: Scene) => Row[]> = {
+const PLANS: Record<string, (scene: Scene) => Row[]> = {
   // `agsync check` on a repo that decayed: three findings that are damning on
   // sight — an unsatisfiable boot step, a duplicate decision ID, and an index
   // that disagrees with the file it indexes.
-  1(scene) {
+  "check-rot"(scene) {
     const { spans, plain } = split(scene);
 
     const files = new Set(["AGENTS.md", "memory/decisions.md", "tasks/README.md"]);
@@ -74,8 +74,32 @@ const PLANS: Record<number, (scene: Scene) => Row[]> = {
     return rows;
   },
 
+  // pip narrates every build step and names two temp directories on the way.
+  // The five lines it left-aligns are the ones that say what happened.
+  "install-pip"(scene) {
+    const { spans, plain } = split(scene);
+    const keep = (line: string) =>
+      line.length > 0 && !/^\s/.test(line) && !line.startsWith("[notice]");
+    const last = plain.findLastIndex(keep);
+    assert(last > 0, "no top-level lines in the pip output");
+
+    const rows: Row[] = [];
+    let dropped = 0;
+    for (let i = 0; i <= last; i++) {
+      if (keep(plain[i]!)) {
+        rows.push(shown(spans[i]!));
+      } else {
+        rows.push(extra(spans[i]!));
+        dropped++;
+      }
+    }
+    rows.push({ kind: "elision", text: `${dropped + (plain.length - 1 - last)} more` });
+    for (let i = last + 1; i < spans.length; i++) rows.push(extra(spans[i]!));
+    return rows;
+  },
+
   // `agsync rules`: five of them, and an honest count of the rest.
-  3(scene) {
+  rules(scene) {
     const { spans } = split(scene);
     const cut = 5;
     assert(spans.length > cut, "fewer rules than the plan expects");
@@ -88,7 +112,7 @@ const PLANS: Record<number, (scene: Scene) => Row[]> = {
 
   // `agsync replay --first-seen`: the per-commit table is the previous scene's
   // job, so this one starts at the survival table.
-  5(scene) {
+  "first-seen"(scene) {
     const { spans, plain } = split(scene);
     const start = plain.findIndex((l) => /^rule\s+first failed\s+survived/.test(l));
     assert(start > 0, "survival table header not found");
@@ -101,6 +125,6 @@ const PLANS: Record<number, (scene: Scene) => Row[]> = {
 };
 
 export function trim(scene: Scene): Row[] {
-  const plan = PLANS[scene.n];
+  const plan = PLANS[scene.id];
   return plan ? plan(scene) : toLines(scene.output).map(shown);
 }

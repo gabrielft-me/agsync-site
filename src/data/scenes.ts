@@ -2,8 +2,7 @@
 // Every `output` below is what the command actually printed, ANSI included.
 
 export interface Scene {
-  n: number;
-  label: string;
+  id: string;
   command: string;
   note: string | null;
   exit: number;
@@ -12,59 +11,72 @@ export interface Scene {
 
 export const scenes: Scene[] = [
   {
-    n: 1,
-    label: "Everything here reads fine to a human",
+    id: "install-uv",
+    command: "uv tool install git+https://github.com/gabrielft-me/agsync",
+    note: null,
+    exit: 0,
+    output: "Resolved 1 package in 8ms\nInstalled 1 package in 5ms\n + agsync==0.1.0 (from git+https://github.com/gabrielft-me/agsync@d78bc6a6cd74fecc9877132cecaf95ff1cdd80f6)\nInstalled 1 executable: agsync",
+  },
+  {
+    id: "install-pip",
+    command: "pip install git+https://github.com/gabrielft-me/agsync",
+    note: null,
+    exit: 0,
+    output: "Collecting git+https://github.com/gabrielft-me/agsync\n  Cloning https://github.com/gabrielft-me/agsync to /private/var/folders/tp/frsg8twj4s55qxrdmh_f7kg40000gn/T/pip-req-build-grk38yo9\n  Running command git clone --filter=blob:none --quiet https://github.com/gabrielft-me/agsync /private/var/folders/tp/frsg8twj4s55qxrdmh_f7kg40000gn/T/pip-req-build-grk38yo9\n  Resolved https://github.com/gabrielft-me/agsync to commit d78bc6a6cd74fecc9877132cecaf95ff1cdd80f6\n  Installing build dependencies: started\n  Installing build dependencies: finished with status 'done'\n  Getting requirements to build wheel: started\n  Getting requirements to build wheel: finished with status 'done'\n  Preparing metadata (pyproject.toml): started\n  Preparing metadata (pyproject.toml): finished with status 'done'\nBuilding wheels for collected packages: agsync\n  Building wheel for agsync (pyproject.toml): started\n  Building wheel for agsync (pyproject.toml): finished with status 'done'\n  Created wheel for agsync: filename=agsync-0.1.0-py3-none-any.whl size=34511 sha256=f0559fc90bc22fcdb494a67aea0340860acbc48f2fd0d3c366b387fb27aea1da\n  Stored in directory: /private/var/folders/tp/frsg8twj4s55qxrdmh_f7kg40000gn/T/pip-ephem-wheel-cache-l9xc1z6o/wheels/06/fb/98/0ca5e8dab5d2ffb4495131ac3dd018b25b8f6e4f0856332c72\nSuccessfully built agsync\nInstalling collected packages: agsync\nSuccessfully installed agsync-0.1.0\n\n[notice] A new release of pip is available: 24.2 -> 26.2.1\n[notice] To update, run: python3.12 -m pip install --upgrade pip",
+  },
+  {
+    id: "check-rot",
     command: "agsync check",
     note: "this is a real repo, anonymised",
     exit: 1,
     output: "\u001b[1mAGENTS.md\u001b[0m\n     6  \u001b[31merror\u001b[0m \u001b[2mprotocol-files-exist\u001b[0m  boot protocol requires 'memory/goal.md', which does not exist — this step is unsatisfiable and every session skips it\n     9  \u001b[31merror\u001b[0m \u001b[2mprotocol-files-exist\u001b[0m  boot protocol requires 'goal.md', which does not exist — this step is unsatisfiable and every session skips it\n\u001b[1mmemory/decisions.md\u001b[0m\n    11  \u001b[31merror\u001b[0m \u001b[2munique-decision-ids\u001b[0m  D-021 is redefined here (first defined at line 7); 1 reference(s) to D-021 are now ambiguous\n    27  \u001b[31merror\u001b[0m \u001b[2mdecision-has-date\u001b[0m  D-027 has no **Date:** field\n    27  \u001b[31merror\u001b[0m \u001b[2mrelations-resolve\u001b[0m  D-027 supersedes D-019, which is not defined\n\u001b[1mtasks/09-verify-staging-deploy.md\u001b[0m\n     1  \u001b[31merror\u001b[0m \u001b[2mno-dependency-cycles\u001b[0m  dependency cycle: 09 -> 25 -> 09\n     9  \u001b[31merror\u001b[0m \u001b[2mlinks-resolve\u001b[0m  link target '../memory/state.md' does not exist\n\u001b[1mtasks/25-cache-invalidation.md\u001b[0m\n     3  \u001b[33mwarn\u001b[0m \u001b[2mstatus-not-qualified\u001b[0m  status is qualified with free text ('(all tiers incl. the edge cache)'); move the caveat into the body and keep the status machine-readable\n\u001b[1mtasks/26-rate-limit-headers.md\u001b[0m\n     3  \u001b[33mwarn\u001b[0m \u001b[2mstatus-not-qualified\u001b[0m  status is qualified with free text ('(proxy path smoke-tested; client typecheck clea...'); move the caveat into the body and keep the status machine-readable\n\u001b[1mtasks/README.md\u001b[0m\n     -  \u001b[31merror\u001b[0m \u001b[2mindex-matches-files\u001b[0m  task 26 exists (tasks/26-rate-limit-headers.md) but is absent from the index — invisible to anyone reading it\n     4  \u001b[31merror\u001b[0m \u001b[2mlinks-resolve\u001b[0m  link target '../memory/goal.md' does not exist\n    14  \u001b[31merror\u001b[0m \u001b[2mindex-matches-files\u001b[0m  task 25: index says 'todo', file says 'done'\n\n5 decisions, 3 tasks, 2 index rows\n\u001b[31m10 error(s), 2 warning(s)\u001b[0m",
   },
   {
-    n: 2,
-    label: "Rarer than you'd think",
+    id: "check-clean",
     command: "agsync check",
     note: "after someone fixed it",
     exit: 0,
     output: "1 decisions, 1 tasks, 1 index rows\n\u001b[0m0 error(s), 0 warning(s)\u001b[0m",
   },
   {
-    n: 3,
-    label: "Fourteen ways to be wrong",
+    id: "rules",
     command: "agsync rules",
     note: null,
     exit: 0,
     output: "blocked-task-not-done   warn   A task is done while a task it depends on is not.\ndecision-has-date       error  A decision entry carries no Date field, so the ledger cannot be ordered.\ndecision-refs-resolve   error  A D-xxx token is referenced somewhere in the repo but never defined in the ledger.\nindex-matches-files     error  The task index disagrees with the task files, or omits one entirely.\nlinks-resolve           error  A relative markdown link points at a file that does not exist.\nno-dependency-cycles    error  Task dependencies form a cycle, so no valid execution order exists.\nno-orphan-memory-files  warn   A file under memory/ is never referenced from the protocol or the ledger.\nno-self-reference       error  A decision supersedes or amends itself.\nprotocol-files-exist    error  The boot protocol instructs agents to read a file that does not exist.\nrelations-resolve       error  A supersedes/amends relationship points at a decision that does not exist.\nstatus-in-enum          error  A task status is outside the declared enum.\nstatus-not-qualified    warn   A status carries trailing free text ('done (stub)'), so it is not machine-readable.\ntask-refs-resolve       error  A task depends on or blocks a task number that does not exist.\nunique-decision-ids     error  A decision ID is defined more than once, making every reference to it ambiguous.",
   },
   {
-    n: 4,
-    label: "Every commit you've ever pushed, judged",
+    id: "replay",
     command: "agsync replay .",
     note: "the part that hurts",
     exit: 0,
-    output: "\u001b[1msha      date        errors  rules\u001b[0m\n242b126  2026-08-01       0  —\nec43106  2026-08-01  \u001b[31m     1\u001b[0m  protocol-files-exist\nb802526  2026-08-02  \u001b[31m     2\u001b[0m  protocol-files-exist, unique-decision-ids\n528918e  2026-08-03  \u001b[31m     2\u001b[0m  protocol-files-exist, unique-decision-ids\n05af18c  2026-08-04  \u001b[31m     1\u001b[0m  unique-decision-ids\n8487348  2026-08-05  \u001b[31m     1\u001b[0m  unique-decision-ids\n\n\u001b[31m5 of 6 pushes would have been rejected\u001b[0m",
+    output: "\u001b[1msha      date        errors  rules\u001b[0m\n8786d16  2026-08-01       0  —\n468ee36  2026-08-01  \u001b[31m     1\u001b[0m  protocol-files-exist\n33ec99e  2026-08-02  \u001b[31m     2\u001b[0m  protocol-files-exist, unique-decision-ids\n66d561b  2026-08-03  \u001b[31m     2\u001b[0m  protocol-files-exist, unique-decision-ids\ned82ef0  2026-08-04  \u001b[31m     1\u001b[0m  unique-decision-ids\n1931963  2026-08-05  \u001b[31m     1\u001b[0m  unique-decision-ids\n\n\u001b[31m5 of 6 pushes would have been rejected\u001b[0m",
   },
   {
-    n: 5,
-    label: "How long nobody noticed",
+    id: "first-seen",
     command: "agsync replay . --first-seen",
     note: null,
     exit: 0,
-    output: "\u001b[1msha      date        errors  rules\u001b[0m\n242b126  2026-08-01       0  —\nec43106  2026-08-01  \u001b[31m     1\u001b[0m  protocol-files-exist\nb802526  2026-08-02  \u001b[31m     2\u001b[0m  protocol-files-exist, unique-decision-ids\n528918e  2026-08-03  \u001b[31m     2\u001b[0m  protocol-files-exist, unique-decision-ids\n05af18c  2026-08-04  \u001b[31m     1\u001b[0m  unique-decision-ids\n8487348  2026-08-05  \u001b[31m     1\u001b[0m  unique-decision-ids\n\n\u001b[31m5 of 6 pushes would have been rejected\u001b[0m\n\n\u001b[1mrule                  first failed         survived\u001b[0m\nunique-decision-ids   b802526 2026-08-02   4 commits, 3 days (still failing at HEAD)\nprotocol-files-exist  ec43106 2026-08-01   3 commits, 1 day\n\u001b[2m\nlongest-lived violation: unique-decision-ids in memory/decisions.md — 4 commits — D-001 is redefined here (first defined at line 6); 2 reference(s) to …\u001b[0m",
+    output: "\u001b[1msha      date        errors  rules\u001b[0m\n8786d16  2026-08-01       0  —\n468ee36  2026-08-01  \u001b[31m     1\u001b[0m  protocol-files-exist\n33ec99e  2026-08-02  \u001b[31m     2\u001b[0m  protocol-files-exist, unique-decision-ids\n66d561b  2026-08-03  \u001b[31m     2\u001b[0m  protocol-files-exist, unique-decision-ids\ned82ef0  2026-08-04  \u001b[31m     1\u001b[0m  unique-decision-ids\n1931963  2026-08-05  \u001b[31m     1\u001b[0m  unique-decision-ids\n\n\u001b[31m5 of 6 pushes would have been rejected\u001b[0m\n\n\u001b[1mrule                  first failed         survived\u001b[0m\nunique-decision-ids   33ec99e 2026-08-02   4 commits, 3 days (still failing at HEAD)\nprotocol-files-exist  468ee36 2026-08-01   3 commits, 1 day\n\u001b[2m\nlongest-lived violation: unique-decision-ids in memory/decisions.md — 4 commits — D-001 is redefined here (first defined at line 6); 2 reference(s) to …\u001b[0m",
   },
   {
-    n: 6,
-    label: "The part people uninstall",
+    id: "gate",
     command: "git commit -m \"wip\"",
     note: "good luck",
     exit: 1,
     output: "\u001b[1mmemory/decisions.md\u001b[0m\n    16  \u001b[31merror\u001b[0m \u001b[2munique-decision-ids\u001b[0m  D-001 is redefined here (first defined at line 6); 1 reference(s) to D-001 are now ambiguous\n\u001b[1mtasks/README.md\u001b[0m\n     9  \u001b[31merror\u001b[0m \u001b[2mindex-matches-files\u001b[0m  task 00: index says 'todo', file says 'done'\n\n1 decisions, 1 tasks, 1 index rows\n\u001b[31m2 error(s), 0 warning(s)\u001b[0m",
   },
   {
-    n: 7,
-    label: "Start from nothing",
+    id: "init",
     command: "agsync init",
     note: null,
     exit: 0,
     output: "created  AGENTS.md\ncreated  memory/goal.md\ncreated  memory/decisions.md\ncreated  memory/state.md\ncreated  tasks/README.md\ncreated  tasks/00-example.md\ncreated  .agsync.toml\n\nNext: describe your project's objective in memory/goal.md, then run `agsync check`.",
   },
 ];
+
+export const byId = (id: string): Scene => {
+  const scene = scenes.find((s) => s.id === id);
+  if (!scene) throw new Error(`no captured scene "${id}"`);
+  return scene;
+};

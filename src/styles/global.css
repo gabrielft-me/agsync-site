@@ -576,3 +576,31 @@ html[data-app] body {
   .caret { display: none !important; }
   [data-running] [data-out] > * { opacity: 1 !important; }
 }
+
+/* The package manager the install was run with. A segmented control, sitting
+   where a code block's language switcher sits, quiet until you look at it. */
+.install-tabs {
+  display: flex;
+  gap: 2px;
+  float: right;
+  padding: 2px;
+  border: 1px solid var(--color-line-strong);
+  border-radius: 8px;
+}
+
+.install-tab {
+  padding: 0.15rem 0.6rem;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--color-subtle);
+  cursor: pointer;
+  transition:
+    color 150ms ease-out,
+    background-color 150ms ease-out;
+}
+.install-tab:hover { color: var(--color-muted); }
+.install-tab[aria-pressed="true"] {
+  background: rgb(255 255 255 / 0.08);
+  color: var(--color-fg);
+}

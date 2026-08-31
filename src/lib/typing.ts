@@ -27,7 +27,22 @@ function keyDelay(prev: string, random: () => number): number {
   return d;
 }
 
-export function plan(text: string, random: () => number = Math.random): Key[] {
+/**
+ * An agent typing: one interval, no hesitation, no correction, and faster than
+ * a hand can move. The contrast with `plan` is the whole point — the install is
+ * typed by a person, the command after it is not.
+ */
+export function steady(text: string, ms = 14): Key[] {
+  return [...text].map((c) => ({ c, d: ms }));
+}
+
+export function plan(
+  text: string,
+  random: () => number = Math.random,
+  /** Squeeze the whole line into roughly this long. A URL typed at a true human
+   *  pace is four seconds of watching someone type a URL. */
+  budgetMs?: number,
+): Key[] {
   const keys: Key[] = [];
   let prev = "";
 
@@ -44,7 +59,7 @@ export function plan(text: string, random: () => number = Math.random): Key[] {
   // Too short to transpose, or the swap would be invisible: just type it.
   if (at < 2 || tail[0] === tail[1]) {
     type(0, text.length);
-    return keys;
+    return budgetMs ? squeeze(keys, budgetMs) : keys;
   }
 
   type(0, at);
@@ -58,7 +73,16 @@ export function plan(text: string, random: () => number = Math.random): Key[] {
   prev = text[at - 1] ?? "";
   type(at, text.length);
 
-  return keys;
+  return budgetMs ? squeeze(keys, budgetMs) : keys;
+}
+
+function squeeze(keys: Key[], budgetMs: number): Key[] {
+  const total = keys.reduce((sum, k) => sum + k.d, 0);
+  if (total <= budgetMs) return keys;
+  const scale = budgetMs / total;
+  // Scaling every delay by the same factor keeps the shape of the rhythm —
+  // the hesitations stay proportionally long — while the line fits the beat.
+  return keys.map((k) => ({ ...k, d: k.d * scale }));
 }
 
 /** Replays a plan the way the animation does, for tests. */

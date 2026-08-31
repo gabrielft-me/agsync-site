@@ -36,6 +36,31 @@ run() {
   printf '%s' "$status" > "$RAW/$id.status"
 }
 
+# Same, without the pty. Installers draw a spinner and erase it, which a
+# terminal consumes and a capture keeps; piped, they print the settled lines a
+# person is left looking at. The trade is their colour, which is little.
+run_plain() {
+  local id="$1" cwd="$2"; shift 2
+  local status=0
+  PATH="$REPO/.venv/bin:$PATH" /bin/sh -c "cd '$cwd' && $*" \
+    > "$RAW/$id.out" 2>&1 < /dev/null || status=$?
+  printf '%s' "$status" > "$RAW/$id.status"
+}
+
+# Installing it. Neither registry has the name yet, so the runnable command
+# today is the git one — and it is the one shown, because the output names the
+# URL and a shorter command line above it would contradict it. When agsync is
+# published, AGSYNC_SPEC becomes "agsync" and both of these shorten with it.
+SPEC="${AGSYNC_SPEC:-git+https://github.com/gabrielft-me/agsync}"
+
+# uv installs into the caller's tool directory, so point it somewhere temporary
+# rather than leaving a tool behind on whoever ran this.
+UV_TOOL_DIR="$WORK/uv/dir" UV_TOOL_BIN_DIR="$WORK/uv/bin" \
+  run_plain install-uv "$WORK" "uv tool install $SPEC"
+
+python3 -m venv "$WORK/venv" >/dev/null
+run_plain install-pip "$WORK" "'$WORK/venv/bin/pip' install $SPEC"
+
 # 1 + 2 — the same command against a repo that decayed and one that has not.
 run 1 "$REPO" "agsync check tests/fixtures/decayed"
 

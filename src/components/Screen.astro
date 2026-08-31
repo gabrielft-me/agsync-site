@@ -1,6 +1,6 @@
 ---
 import StarButton from "./StarButton.astro";
-import { scenes } from "../data/scenes";
+import { byId, type Scene } from "../data/scenes";
 import {
   tree,
   docs,
@@ -11,27 +11,63 @@ import {
 } from "../data/project";
 import { source } from "../lib/markdown";
 import { outro } from "../data/outro";
-import { plan } from "../lib/typing";
+import { plan, steady } from "../lib/typing";
 import { toPlain } from "../lib/ansi";
 import { trim } from "../lib/trim";
 import { links } from "../config";
 
+// Installing it. Neither registry has the name yet, so the runnable command
+// is the git one, and it is the command shown — the output names the URL and a
+// shorter line above it would contradict it.
+const installs = [
+  { id: "uv", label: "uv", scene: byId("install-uv") },
+  { id: "pip", label: "pip", scene: byId("install-pip") },
+];
+
+interface Step {
+  scene: Scene;
+  /** A person types the install; the agent runs what it installed. */
+  typist: "human" | "agent";
+  install?: string;
+}
+
+const human = (scene: Scene): Step => ({ scene, typist: "human" });
+const agent = (scene: Scene): Step => ({ scene, typist: "agent" });
+
 // The tree is the resting state, so it is view 1; the captured runs follow,
 // and the closing prose takes the same window at the end.
 const views = [
-  { kind: "tree" as const, label: treeLabel, scene: null },
-  ...scenes.map((scene) => ({ kind: "run" as const, label: scene.label, scene })),
-  { kind: "outro" as const, label: outro.label, scene: null },
+  { kind: "ide" as const, label: treeLabel, steps: [] as Step[] },
+  {
+    kind: "run" as const,
+    label: "Everything here reads fine to a human",
+    // The install is typed by hand, badly; what follows is not.
+    steps: [
+      ...installs.map(({ id, scene }) => ({ ...human(scene), install: id })),
+      agent(byId("check-rot")),
+    ],
+  },
+  { kind: "run" as const, label: "Rarer than you’d think", steps: [agent(byId("check-clean"))] },
+  { kind: "run" as const, label: "Fourteen ways to be wrong", steps: [agent(byId("rules"))] },
+  { kind: "run" as const, label: "Every commit you’ve ever pushed, judged", steps: [agent(byId("replay"))] },
+  { kind: "run" as const, label: "How long nobody noticed", steps: [agent(byId("first-seen"))] },
+  { kind: "run" as const, label: "The part people uninstall", steps: [agent(byId("gate"))] },
+  { kind: "run" as const, label: "Start from nothing", steps: [agent(byId("init"))] },
+  { kind: "outro" as const, label: outro.label, steps: [] as Step[] },
 ];
-// The keystroke plan is generated here rather than in the browser, so the
-// client script keeps no imports and stays inlined with the rest of the page.
-// A visitor sees this line typed once; what has to be irregular is the timing
-// within it, not the timing between page loads.
-const firstDoc = docs.find((d) => d.id === DEFAULT_DOC)!;
 
-const typePlan = JSON.stringify(
-  plan(scenes[0]!.command).map((k) => ({ ...k, d: Math.round(k.d) })),
-);
+// Keystroke plans are generated here rather than in the browser, so the client
+// script keeps no imports and stays inlined. A visitor sees a line typed once;
+// what has to be irregular is the rhythm within it, not between page loads.
+const round = (keys: { d: number }[]) =>
+  JSON.stringify(keys.map((k) => ({ ...k, d: Math.round(k.d) })));
+
+const keystrokes = (step: Step) =>
+  step.typist === "agent"
+    ? round(steady(step.scene.command))
+    : round(plan(step.scene.command, Math.random, 1700));
+
+const firstDoc = docs.find((d) => d.id === DEFAULT_DOC)!;
 
 const total = String(views.length).padStart(2, "0");
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -120,7 +156,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
                   <p data-label class="mt-1 text-[1.0625rem] text-fg">{v.label}</p>
                 </div>
 
-                {v.kind === "tree" ? (
+                {v.kind === "ide" ? (
                   <div
                     class="scene-body scene-ide"
                     data-title={`${firstDoc.path} — ${PROJECT}`}
@@ -245,46 +281,80 @@ const pad = (n: number) => String(n).padStart(2, "0");
                     </div>
                   </div>
                 ) : (
-                  <div class="scene-body" data-title="agent-memory — zsh" data-exit-code={v.scene!.exit}>
-                    <p class="term-line"><span class="text-accent">$ </span><span
-                        data-cmd={v.scene!.command}
-                        data-plan={i === 1 ? typePlan : undefined}
-                        class="text-fg"
-                      >{v.scene!.command}</span><span
-                        data-caret
-                        class="caret"
-                        aria-hidden="true"
-                      />{v.scene!.note && (
-                        <span data-note class="text-subtle">   # {v.scene!.note}</span>
-                      )}
-                    </p>
-                    <div data-out class="mt-3">
-                      {trim(v.scene!).map((row) =>
-                        row.kind === "elision" ? (
+                  <div
+                    class="scene-body"
+                    data-title="agent-memory — zsh"
+                    data-exit-code={v.steps.at(-1)!.scene.exit}
+                  >
+                    {v.steps.some((st) => st.install) && (
+                      <div class="install-tabs" role="group" aria-label="Package manager">
+                        {installs.map((inst, k) => (
                           <button
                             type="button"
-                            data-expand
-                            data-more={row.text}
-                            aria-expanded="false"
-                            class="term-line scene-elision"
+                            data-install-tab={inst.id}
+                            aria-pressed={k === 0 ? "true" : "false"}
+                            class="install-tab"
                           >
-                            {`   … ${row.text}`}
+                            {inst.label}
                           </button>
-                        ) : (
-                          <p class:list={["term-line", row.extra && "scene-extra"]}>
-                            {row.spans.length === 0 ? (
-                              <span>&nbsp;</span>
+                        ))}
+                      </div>
+                    )}
+
+                    {v.steps.map((st, k) => (
+                      <div
+                        data-step
+                        data-install={st.install}
+                        hidden={st.install ? k !== 0 : undefined}
+                        class:list={["step", k > 0 && "mt-6"]}
+                      >
+                        <p class="term-line"><span class="text-accent">$ </span><span
+                            data-cmd={st.scene.command}
+                            data-plan={keystrokes(st)}
+                            class="text-fg"
+                          >{st.scene.command}</span><span
+                            data-caret
+                            class="caret"
+                            aria-hidden="true"
+                          />{st.scene.note && (
+                            <span data-note class="text-subtle">   # {st.scene.note}</span>
+                          )}
+                        </p>
+                        <div data-out class="mt-3">
+                          {trim(st.scene).map((row) =>
+                            row.kind === "elision" ? (
+                              <button
+                                type="button"
+                                data-expand
+                                data-more={row.text}
+                                aria-expanded="false"
+                                class="term-line scene-elision"
+                              >
+                                {`   … ${row.text}`}
+                              </button>
                             ) : (
-                              row.spans.map((sp) => <span class={sp.cls}>{sp.text}</span>)
-                            )}
-                          </p>
-                        ),
-                      )}
-                    </div>
+                              <p class:list={["term-line", row.extra && "scene-extra"]}>
+                                {row.spans.length === 0 ? (
+                                  <span>&nbsp;</span>
+                                ) : (
+                                  row.spans.map((sp) => <span class={sp.cls}>{sp.text}</span>)
+                                )}
+                              </p>
+                            ),
+                          )}
+                        </div>
+                      </div>
+                    ))}
+
                     <p class="scene-exit mt-3 font-mono text-[0.6875rem] text-subtle">
-                      exit {v.scene!.exit}
+                      exit {v.steps.at(-1)!.scene.exit}
                     </p>
-                    <pre class="sr-only">{`$ ${v.scene!.command}\n${toPlain(v.scene!.output)}\nexit ${v.scene!.exit}`}</pre>
+                    <pre class="sr-only">
+                      {v.steps
+                        .map((st) => `$ ${st.scene.command}\n${toPlain(st.scene.output)}`)
+                        .join("\n\n")}
+                      {`\nexit ${v.steps.at(-1)!.scene.exit}`}
+                    </pre>
                   </div>
                 )}
               </article>
@@ -385,13 +455,12 @@ const pad = (n: number) => String(n).padStart(2, "0");
     };
 
     const typeCommand = (
-      body: HTMLElement,
+      step: HTMLElement,
       animate: boolean,
       done?: () => void,
     ) => {
-      stopTyping();
-      const el = body.querySelector<HTMLElement>("[data-cmd]");
-      body.removeAttribute("data-typing");
+      const el = step.querySelector<HTMLElement>("[data-cmd]");
+      step.removeAttribute("data-typing");
       if (!el) return done?.();
 
       const text = el.dataset.cmd ?? "";
@@ -408,7 +477,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
         return done?.();
       }
 
-      body.setAttribute("data-typing", "");
+      step.setAttribute("data-typing", "");
       el.textContent = "";
 
       let i = 0;
@@ -428,7 +497,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
           // Hold the cursor a beat at the end of the line, the way a hand
           // rests before it hits return.
           typeHold = window.setTimeout(() => {
-            body.removeAttribute("data-typing");
+            step.removeAttribute("data-typing");
             done?.();
           }, 420);
         }
@@ -439,8 +508,8 @@ const pad = (n: number) => String(n).padStart(2, "0");
     // The command runs, and only then does it print. Rows are hidden by
     // opacity rather than removed, so the window is already the right size and
     // nothing reflows as the output lands.
-    const printOutput = (body: HTMLElement, animate: boolean, done: () => void) => {
-      const out = body.querySelector<HTMLElement>("[data-out]");
+    const printOutput = (step: HTMLElement, animate: boolean, done: () => void) => {
+      const out = step.querySelector<HTMLElement>("[data-out]");
       // The lines an elision is standing in for are display:none, so stepping
       // through them would just be silent gaps in the middle of the output.
       const rows = out
@@ -449,21 +518,39 @@ const pad = (n: number) => String(n).padStart(2, "0");
       for (const row of rows) row.removeAttribute("data-shown");
 
       if (!out || !animate) {
-        body.removeAttribute("data-running");
+        step.removeAttribute("data-running");
         return done();
       }
 
+      step.setAttribute("data-running", "");
       let i = 0;
-      const step = () => {
+      const line = () => {
         if (i >= rows.length) {
-          body.removeAttribute("data-running");
+          step.removeAttribute("data-running");
           return done();
         }
         rows[i++]!.setAttribute("data-shown", "");
-        printTimer = window.setTimeout(step, 38);
+        printTimer = window.setTimeout(line, 38);
       };
       // The beat between hitting return and the first line landing.
-      printTimer = window.setTimeout(step, 300);
+      printTimer = window.setTimeout(line, 300);
+    };
+
+    // A scene is a sequence of runs: the install a person types, then the
+    // command the agent types into the same window. Hidden steps — the package
+    // manager you did not pick — are not part of it.
+    const playScene = (body: HTMLElement, animate: boolean, done: () => void) => {
+      stopTyping();
+      const steps = [...body.querySelectorAll<HTMLElement>("[data-step]")].filter(
+        (el) => !el.hidden,
+      );
+      let i = 0;
+      const next = () => {
+        const step = steps[i++];
+        if (!step) return done();
+        typeCommand(step, animate, () => printOutput(step, animate, next));
+      };
+      next();
     };
 
     const collapse = (body: HTMLElement) => {
@@ -526,9 +613,12 @@ const pad = (n: number) => String(n).padStart(2, "0");
         // Keeps six terminals' worth of output out of the accessibility tree.
         b.inert = !on;
         collapse(b);
-        // Leaving mid-run must not strand a scene with its output still
+        // Leaving mid-run must not strand a step with its output still
         // invisible; the timers are cancelled, the state has to go too.
-        b.removeAttribute("data-running");
+        for (const st of b.querySelectorAll("[data-step]")) {
+          st.removeAttribute("data-running");
+          st.removeAttribute("data-typing");
+        }
       });
       labels.forEach((l, j) => l.toggleAttribute("data-on", j === n));
       ticks.forEach((t, j) => {
@@ -569,9 +659,11 @@ const pad = (n: number) => String(n).padStart(2, "0");
       if (plays) {
         exitEl.textContent = "";
         delete panel.dataset.flash;
-        body.setAttribute("data-running", "");
+        for (const st of body.querySelectorAll("[data-step]")) {
+          st.setAttribute("data-running", "");
+        }
       }
-      typeCommand(body, plays, () => printOutput(body, plays, settle));
+      playScene(body, plays, settle);
 
       fit();
     };
@@ -625,6 +717,28 @@ const pad = (n: number) => String(n).padStart(2, "0");
         e.preventDefault();
         e.stopPropagation();
         select(picks[(here + step + picks.length) % picks.length]!, true);
+      });
+    }
+
+    // ---- the package manager ------------------------------------------
+    // Swapping installers is not a replay: whichever one is showing is simply
+    // the one that ran. Both are in the DOM, so it costs nothing.
+    const tabs = [...stack.querySelectorAll<HTMLElement>("[data-install-tab]")];
+    for (const tab of tabs) {
+      tab.addEventListener("click", () => {
+        const want = tab.dataset.installTab;
+        stopTyping();
+        for (const other of tabs) {
+          other.setAttribute("aria-pressed", String(other === tab));
+        }
+        for (const st of stack.querySelectorAll<HTMLElement>("[data-install]")) {
+          st.hidden = st.dataset.install !== want;
+          st.removeAttribute("data-running");
+          st.removeAttribute("data-typing");
+          const el = st.querySelector<HTMLElement>("[data-cmd]");
+          if (el) el.textContent = el.dataset.cmd ?? "";
+        }
+        fit();
       });
     }
 

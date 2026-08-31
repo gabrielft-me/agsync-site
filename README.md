@@ -39,9 +39,16 @@ Every other terminal block is what the CLI actually printed. To regenerate:
 AGSYNC_REPO=~/path/to/agsync scripts/capture-scenes.sh
 ```
 
-That runs the seven commands under a pty (`scripts/pty-run.py`, so the CLI sees
-a terminal and emits its real ANSI), records each one's output and exit status,
-and writes `src/data/scenes.ts`. `src/lib/ansi.ts` turns the escapes into spans
+That runs each command and writes `src/data/scenes.ts`. CLI commands go under a
+pty (`scripts/pty-run.py`) so they emit their real ANSI; installers do not,
+because they draw a spinner and erase it, which a terminal consumes and a
+capture keeps — piped, they print the settled lines a person is left with.
+
+The installs use `git+https://github.com/gabrielft-me/agsync`, which is what
+actually works today: the name is on neither registry yet. That spec is both
+what runs and what the page displays, since the output names the URL and a
+shorter command line above it would contradict it. Set `AGSYNC_SPEC=agsync`
+once it is published and both shorten together. `src/lib/ansi.ts` turns the escapes into spans
 at build time. Never edit `scenes.ts` by hand.
 
 Scenes 4 and 5 (`agsync replay`) need a repository with history. By default the
