@@ -38,18 +38,18 @@ const pad = (n: number) => String(n).padStart(2, "0");
 ---
 
 <div class="screen flex min-h-svh flex-col">
-  <header class="frame flex h-16 shrink-0 items-center justify-between gap-8">
+  <header class="frame flex h-16 shrink-0 items-center justify-between gap-4 sm:gap-8">
     <span class="font-mono text-[0.8125rem] font-medium tracking-tight text-fg">
       agsync
     </span>
 
-    <nav class="flex items-center gap-6">
+    <nav class="flex min-w-0 items-center gap-4 sm:gap-6">
       <StarButton />
       <a
         href={links.readme}
         target="_blank"
         rel="noopener"
-        class="text-[0.875rem] text-muted transition-colors hover:text-fg"
+        class="hidden text-[0.875rem] text-muted transition-colors hover:text-fg sm:inline"
       >
         Docs
       </a>
@@ -316,14 +316,10 @@ const pad = (n: number) => String(n).padStart(2, "0");
   </main>
 
   <footer
-    class="frame flex min-h-16 shrink-0 flex-wrap items-center justify-between gap-x-8 gap-y-2 py-4"
+    class="frame flex min-h-16 shrink-0 items-center py-4"
   >
     <p class="font-mono text-[0.75rem] text-subtle">
       MIT · zero dependencies · Python 3.11+
-    </p>
-    <p class="text-[0.8125rem] text-subtle">
-      If this finds nothing, your memory files are fine. That is also
-      information.
     </p>
   </footer>
 </div>
