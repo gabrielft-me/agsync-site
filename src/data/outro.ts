@@ -10,10 +10,20 @@
 /** TODO: the actual event. A named one is more credible than "a hackathon". */
 export const VENUE = "a hackathon in San Francisco";
 
+/** TODO: the company, if it should be named. Same reasoning as VENUE. */
+export const EMPLOYER = "a YC company";
+
 export const outro = {
   label: "The honest part",
   heading: "Trusted by",
   rule: "─".repeat(29),
   answer: "no one, yet",
   lines: [`Built at ${VENUE}.`, "Open sourced because it seemed useful."],
+  // A byline, not a third line of prose: the paragraph stays at two, and the
+  // only trust signal that actually exists yet sits directly under the line
+  // saying there are none.
+  by: {
+    name: "Gabriel Fagundes",
+    note: `previously an AI engineer at ${EMPLOYER}`,
+  },
 } as const;

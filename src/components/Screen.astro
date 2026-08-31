@@ -219,6 +219,9 @@ const pad = (n: number) => String(n).padStart(2, "0");
                       {outro.lines.map((line) => (
                         <p>{line}</p>
                       ))}
+                      <p class="outro-by">
+                        <a href={links.author} target="_blank" rel="noopener">{outro.by.name}</a>{` — ${outro.by.note}`}
+                      </p>
                     </div>
 
                     <div class="outro-actions">
