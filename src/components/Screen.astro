@@ -1,7 +1,15 @@
 ---
 import StarButton from "./StarButton.astro";
 import { scenes } from "../data/scenes";
-import { tree, treeLabel, treeTranscript } from "../data/tree";
+import {
+  tree,
+  docs,
+  treeLabel,
+  treeTranscript,
+  DEFAULT_DOC,
+  PROJECT,
+} from "../data/project";
+import { source } from "../lib/markdown";
 import { outro } from "../data/outro";
 import { plan } from "../lib/typing";
 import { toPlain } from "../lib/ansi";
@@ -19,6 +27,8 @@ const views = [
 // client script keeps no imports and stays inlined with the rest of the page.
 // A visitor sees this line typed once; what has to be irregular is the timing
 // within it, not the timing between page loads.
+const firstDoc = docs.find((d) => d.id === DEFAULT_DOC)!;
+
 const typePlan = JSON.stringify(
   plan(scenes[0]!.command).map((k) => ({ ...k, d: Math.round(k.d) })),
 );
@@ -84,8 +94,11 @@ const pad = (n: number) => String(n).padStart(2, "0");
           <span class="size-2.5 rounded-full bg-white/12"></span>
           <span class="size-2.5 rounded-full bg-white/12"></span>
           <span class="size-2.5 rounded-full bg-white/12"></span>
-          <span class="ml-2 font-mono text-[0.6875rem] tracking-wide text-subtle">
-            agent-memory — zsh
+          <span
+            data-chrome-title
+            class="ml-2 truncate font-mono text-[0.6875rem] tracking-wide text-subtle"
+          >
+            {`${firstDoc.path} — ${PROJECT}`}
           </span>
           <span
             data-exit
@@ -108,50 +121,96 @@ const pad = (n: number) => String(n).padStart(2, "0");
                 </div>
 
                 {v.kind === "tree" ? (
-                  <div class="scene-body">
-                    <div class="tree">
-                      {tree.map((row) => (
-                        <p
-                          class:list={["tree-row", !row.surface && "tree-dim"]}
-                          style={`--depth:${row.depth}`}
-                        >
-                          {Array.from({ length: row.depth }).map(() => (
-                            <span class="tree-guide" aria-hidden="true" />
-                          ))}
-                          {row.kind === "dir" ? (
-                            <svg class="tree-icon" viewBox="0 0 16 16" aria-hidden="true">
-                              <path
-                                fill="currentColor"
-                                d="M1.5 4.2c0-.7.6-1.2 1.2-1.2h3.1c.4 0 .8.2 1 .5l.7.9h5.8c.7 0 1.2.6 1.2 1.2v6.2c0 .7-.6 1.2-1.2 1.2H2.7c-.7 0-1.2-.6-1.2-1.2V4.2z"
-                              />
-                            </svg>
+                  <div
+                    class="scene-body scene-ide"
+                    data-title={`${firstDoc.path} — ${PROJECT}`}
+                  >
+                    <div class="ide">
+                      <div
+                        class="ide-tree"
+                        role="group"
+                        aria-label={`Files agsync reads in ${PROJECT}`}
+                      >
+                        {tree.map((row) =>
+                          row.file ? (
+                            <button
+                              type="button"
+                              data-file={row.file}
+                              data-title={`${docs.find((d) => d.id === row.file)!.path} — ${PROJECT}`}
+                              aria-current={row.file === DEFAULT_DOC ? "true" : "false"}
+                              tabindex={row.file === DEFAULT_DOC ? 0 : -1}
+                              class="tree-row tree-pick"
+                              style={`--depth:${row.depth}`}
+                            >
+                              {Array.from({ length: row.depth }).map(() => (
+                                <span class="tree-guide" aria-hidden="true" />
+                              ))}
+                              <svg class="tree-icon" viewBox="0 0 16 16" aria-hidden="true">
+                                <path
+                                  fill="currentColor"
+                                  d="M3.4 2.2h5l4.2 4.2v7.4c0 .5-.4.9-.9.9H3.4a.9.9 0 0 1-.9-.9V3.1c0-.5.4-.9.9-.9z"
+                                  opacity="0.85"
+                                />
+                                <path fill="var(--ide-sidebar)" d="M8.4 2.2l4.2 4.2H9.1a.7.7 0 0 1-.7-.7V2.2z" />
+                              </svg>
+                              <span class="tree-name">{row.name}</span>
+                            </button>
                           ) : (
-                            <svg class="tree-icon" viewBox="0 0 16 16" aria-hidden="true">
-                              <path
-                                fill="currentColor"
-                                d="M3.4 2.2h5l4.2 4.2v7.4c0 .5-.4.9-.9.9H3.4a.9.9 0 0 1-.9-.9V3.1c0-.5.4-.9.9-.9z"
-                                opacity="0.85"
-                              />
-                              <path fill="var(--color-terminal)" d="M8.4 2.2l4.2 4.2H9.1a.7.7 0 0 1-.7-.7V2.2z" />
-                            </svg>
-                          )}
-                          <span class="tree-name">{row.name}</span>
-                          {row.mark && (
-                            <svg class="tree-mark" viewBox="0 0 40 14" aria-hidden="true">
-                              <path
-                                fill="none" stroke="currentColor" stroke-width="2.6"
-                                stroke-linecap="round" stroke-linejoin="round"
-                                d="M38.7 7H4.4M11 1.6L4.4 7l6.6 5.4"
-                              />
-                            </svg>
-                          )}
-                        </p>
-                      ))}
+                            <p
+                              class:list={["tree-row", row.surface ? "tree-surface" : "tree-dim"]}
+                              style={`--depth:${row.depth}`}
+                            >
+                              {Array.from({ length: row.depth }).map(() => (
+                                <span class="tree-guide" aria-hidden="true" />
+                              ))}
+                              {row.kind === "dir" ? (
+                                <svg class="tree-icon" viewBox="0 0 16 16" aria-hidden="true">
+                                  <path
+                                    fill="currentColor"
+                                    d="M1.5 4.2c0-.7.6-1.2 1.2-1.2h3.1c.4 0 .8.2 1 .5l.7.9h5.8c.7 0 1.2.6 1.2 1.2v6.2c0 .7-.6 1.2-1.2 1.2H2.7c-.7 0-1.2-.6-1.2-1.2V4.2z"
+                                  />
+                                </svg>
+                              ) : (
+                                <svg class="tree-icon" viewBox="0 0 16 16" aria-hidden="true">
+                                  <path
+                                    fill="currentColor"
+                                    d="M3.4 2.2h5l4.2 4.2v7.4c0 .5-.4.9-.9.9H3.4a.9.9 0 0 1-.9-.9V3.1c0-.5.4-.9.9-.9z"
+                                    opacity="0.85"
+                                  />
+                                  <path fill="var(--ide-sidebar)" d="M8.4 2.2l4.2 4.2H9.1a.7.7 0 0 1-.7-.7V2.2z" />
+                                </svg>
+                              )}
+                              <span class="tree-name">{row.name}</span>
+                            </p>
+                          ),
+                        )}
+                      </div>
+
+                      <div class="ide-editor">
+                        {docs.map((doc) => (
+                          <div
+                            class="ide-doc"
+                            data-doc={doc.id}
+                            hidden={doc.id !== DEFAULT_DOC}
+                          >
+                            {source(doc.body).map((line, n) => (
+                              <p class:list={["doc-line", `doc-${line.kind}`]}>
+                                <span class="doc-num" aria-hidden="true">{n + 1}</span>
+                                <span class="doc-src">
+                                  {line.pieces.map((piece) => (
+                                    <span class={`md-${piece.k}`}>{piece.t}</span>
+                                  ))}
+                                </span>
+                              </p>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                     <pre class="sr-only">{treeTranscript}</pre>
                   </div>
                 ) : v.kind === "outro" ? (
-                  <div class="scene-body scene-outro">
+                  <div class="scene-body scene-outro" data-title="agent-memory — zsh">
                     <p class="outro-head">{outro.heading}</p>
                     <p class="outro-rule" aria-hidden="true">{outro.rule}</p>
                     <p class="outro-answer">{outro.answer}</p>
@@ -183,7 +242,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
                     </div>
                   </div>
                 ) : (
-                  <div class="scene-body" data-exit-code={v.scene!.exit}>
+                  <div class="scene-body" data-title="agent-memory — zsh" data-exit-code={v.scene!.exit}>
                     <p class="term-line"><span class="text-accent">$ </span><span
                         data-cmd={v.scene!.command}
                         data-plan={i === 1 ? typePlan : undefined}
@@ -274,6 +333,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
   const countEl = document.querySelector<HTMLElement>("[data-count]");
   const exitEl = document.querySelector<HTMLElement>("[data-exit]");
   const chrome = document.querySelector<HTMLElement>("[data-chrome]");
+  const chromeTitle = document.querySelector<HTMLElement>("[data-chrome-title]");
   const main = document.querySelector("main");
   const articles = stack
     ? [...stack.querySelectorAll<HTMLElement>(".scene")]
@@ -282,7 +342,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
 
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 
-  if (stack && panel && labelBox && countEl && exitEl && chrome && main && articles.length && !reduced.matches) {
+  if (stack && panel && labelBox && countEl && exitEl && chrome && chromeTitle && main && articles.length && !reduced.matches) {
     const bodies: HTMLElement[] = [];
     const labels: HTMLElement[] = [];
     const total = String(articles.length).padStart(2, "0");
@@ -393,8 +453,11 @@ const pad = (n: number) => String(n).padStart(2, "0");
       // Wide enough for two columns: the window fills the height it is given,
       // the way a terminal you opened yourself would, and its top and bottom
       // edges stay put between scenes. Stacked, it shrinks to its output so
-      // the page below it stays reachable.
-      const fills = matchMedia("(min-width: 1024px)").matches;
+      // the page below it stays reachable — except the editor, whose two panes
+      // have to share a height at every width.
+      const fills =
+        matchMedia("(min-width: 1024px)").matches ||
+        body.classList.contains("scene-ide");
       const h = fills ? room : Math.min(body.scrollHeight, room);
       stack.style.height = `${Math.max(0, h)}px`;
     };
@@ -420,6 +483,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
 
       countEl.textContent = `${String(n + 1).padStart(2, "0")} / ${total}`;
 
+      chromeTitle.textContent = bodies[n]!.dataset.title ?? "";
       typeCommand(bodies[n]!, previous === 0 && n === 1);
 
       // The tree ran nothing, so it has no exit status and nothing to flash.
@@ -447,6 +511,50 @@ const pad = (n: number) => String(n).padStart(2, "0");
     requestAnimationFrame(() => (stack.style.transition = ""));
 
     addEventListener("resize", fit, { passive: true });
+
+    // ---- the file picker --------------------------------------------------
+    // Selecting swaps the editor's contents with no loading state, because
+    // every document is already in the DOM. The dimmed rows are plain text
+    // with no handler at all, so clicking src/ does nothing and the boundary
+    // of the product teaches itself.
+    const ide = stack.querySelector<HTMLElement>(".scene-ide");
+    if (ide) {
+      const picks = [...ide.querySelectorAll<HTMLElement>("[data-file]")];
+      const dossiers = [...ide.querySelectorAll<HTMLElement>("[data-doc]")];
+
+      const select = (pick: HTMLElement, focus: boolean) => {
+        for (const other of picks) {
+          const on = other === pick;
+          other.setAttribute("aria-current", String(on));
+          other.tabIndex = on ? 0 : -1;
+        }
+        for (const doc of dossiers) {
+          doc.hidden = doc.dataset.doc !== pick.dataset.file;
+        }
+        const title = pick.dataset.title ?? "";
+        ide.dataset.title = title;
+        chromeTitle.textContent = title;
+        if (focus) pick.focus();
+        fit();
+      };
+
+      for (const pick of picks) {
+        pick.addEventListener("click", () => select(pick, false));
+      }
+
+      // Arrows walk the selectable files. They must not also change scene,
+      // which is what the same keys do everywhere else on the page.
+      ide.addEventListener("keydown", (e) => {
+        const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[
+          e.key
+        ];
+        const here = picks.indexOf(document.activeElement as HTMLElement);
+        if (step === undefined || here === -1) return;
+        e.preventDefault();
+        e.stopPropagation();
+        select(picks[(here + step + picks.length) % picks.length]!, true);
+      });
+    }
 
     stack.addEventListener("click", (e) => {
       const btn = (e.target as Element).closest<HTMLElement>("[data-expand]");
@@ -510,6 +618,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const el = document.activeElement;
       if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
+      if (el?.closest(".ide-tree")) return; // the file tree owns its arrows
 
       const step = STEP[e.key];
       if (step) {

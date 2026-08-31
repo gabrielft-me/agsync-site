@@ -20,10 +20,15 @@ therefore inlined.
 
 ## The output is captured, never written
 
-Two scenes are the exception and say so. `src/data/tree.ts` is an authored
-illustration of a repository layout and `src/data/outro.ts` is prose; both are
-drawn without a prompt or an exit code so neither can be mistaken for the output
-of a command. The project in the tree is invented.
+Two scenes are the exception and say so. `src/data/project.ts` is an authored
+illustration — an invented `my-service` repository and the six markdown files
+inside it — and `src/data/outro.ts` is prose; both are drawn without a prompt or
+an exit code so neither can be mistaken for the output of a command.
+
+The captured output and the invented project share a file layout, which is what
+actually links them. They do not share decision IDs or task numbers: the output
+comes from a different repository, and making the specifics appear to match
+would be inventing a coincidence.
 
 `outro.ts` also holds `VENUE`, which is still the generic "a hackathon in San
 Francisco" — replace it with the event's actual name.
@@ -79,8 +84,8 @@ sips -s format png -c 630 1200 --cropOffset 0 0 shot.jpg --out public/og.png
 ```
 src/
   components/   Screen (the whole page), StarButton
-  data/         scenes.ts (generated — see above), tree.ts + outro.ts (authored)
-  lib/          ansi.ts (SGR -> spans), trim.ts, typing.ts, github.ts
+  data/         scenes.ts (generated — see above), project.ts + outro.ts (authored)
+  lib/          ansi.ts (SGR -> spans), trim.ts, typing.ts, markdown.ts, github.ts
   pages/        index.astro, 404.astro, og.astro
   styles/       global.css (tokens, texture, app-mode mechanics)
 scripts/        capture-scenes.sh, build-scenes.py, pty-run.py

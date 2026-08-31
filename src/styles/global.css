@@ -334,35 +334,101 @@ html[data-app] body {
 [data-app] .scene-exit { display: none; }
 
 /* ---------------------------------------------------------------------------
-   The orientation scene: a file tree in the same window as every other scene.
-   A sidebar's shape — icons, indent guides — not a diagram.
+   The orientation scene: an editor, not a terminal. A sidebar reads as a
+   different surface from the editor in every real one, so it gets its own.
    --------------------------------------------------------------------------- */
-.tree {
+.terminal { --ide-sidebar: #0e0e12; }
+
+[data-app] .scene-body.scene-ide { padding: 0; }
+
+/* A definite height for the panes to share, so the divider runs the whole way
+   down instead of stopping under the last row of the tree — and so the editor
+   has something to scroll inside on a phone. */
+[data-app] .scene-ide { bottom: 0; }
+
+.ide {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
   font-family: var(--font-mono);
-  /* A shade under the terminal type: twenty rows have to fit the window
-     without ever scrolling. */
-  font-size: clamp(0.5625rem, min(0.45vw + 0.36rem, 1.6vh), 0.875rem);
+  font-size: clamp(0.5625rem, min(0.42vw + 0.34rem, 1.5vh), 0.8125rem);
   line-height: 1.4;
 }
 
-.tree-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-height: 1.5em;
-  color: var(--color-fg);
-  position: relative;
+@media (min-width: 1024px) {
+  .ide {
+    grid-template-columns: minmax(0, 17rem) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
 }
 
-/* Everything agsync does not read recedes, so the three paths it does read
-   are the only thing left to look at. */
-.tree-dim { opacity: 0.35; }
+.ide-tree {
+  background: var(--ide-sidebar);
+  padding: 1rem 0.75rem;
+}
+
+.ide-editor {
+  /* The divider is the editor's own edge, so it runs the full shared height. */
+  border-top: 1px solid rgb(255 255 255 / 0.06);
+  padding: 1rem 1.25rem 1rem 0.75rem;
+  /* The editor scrolls, not the page: on a phone the window cannot grow. */
+  overflow: auto;
+}
+
+@media (min-width: 1024px) {
+  .ide-editor {
+    border-top: 0;
+    border-left: 1px solid rgb(255 255 255 / 0.06);
+    padding: 1.25rem 1.5rem 1.25rem 1rem;
+  }
+}
+
+/* ---- the tree ---- */
+.tree-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 1.7em;
+  padding-inline: 0.5rem;
+  border-radius: 5px;
+  color: var(--color-fg);
+  text-align: left;
+}
+
+/* What agsync does not read is present, and inert. No handler, no hover, no
+   focus — clicking src/ does nothing, quietly. */
+.tree-dim {
+  opacity: 0.32;
+  cursor: default;
+}
+
+/* A directory inside the surface: as present as its children, but there is
+   nothing to open, so it never behaves like a target. */
+.tree-surface { cursor: default; }
+.tree-surface .tree-icon { color: var(--color-muted); }
+
+@media (max-width: 1023px) {
+  /* The project's shape does not survive a phone's width; what agsync reads
+     does, and that is the part being taught. */
+  .tree-dim { display: none; }
+}
+
+.tree-pick { cursor: pointer; transition: background-color 120ms ease-out; }
+.tree-pick:hover { background: rgb(255 255 255 / 0.05); }
+
+/* Selected reads as active the way it would in an editor, not as bright text. */
+.tree-pick[aria-current="true"] {
+  background: rgb(255 255 255 / 0.09);
+  box-shadow: inset 2px 0 0 0 var(--color-accent);
+}
 
 .tree-guide {
   align-self: stretch;
-  width: 1.25rem;
+  width: 1rem;
   flex: none;
-  border-left: 1px solid rgb(255 255 255 / 0.09);
+  border-left: 1px solid rgb(255 255 255 / 0.08);
 }
 
 .tree-icon {
@@ -371,41 +437,37 @@ html[data-app] body {
   flex: none;
   color: var(--color-muted);
 }
-.tree-row:not(.tree-dim) .tree-icon { color: var(--color-fg); }
+.tree-pick .tree-icon { color: var(--color-fg); }
 
 .tree-name { white-space: pre; }
 
-/* The only accent in this scene. Parked in a column of its own so the three
-   marks stack into one vertical line instead of trailing three names of
-   different lengths. */
-.tree-mark {
-  position: absolute;
-  left: 12em;
-  width: 4.25em;
-  height: 1.49em;
-  color: var(--color-accent);
-  filter: drop-shadow(0 0 9px color-mix(in srgb, var(--color-accent) 70%, transparent));
+/* ---- the editor ---- */
+.doc-line {
+  display: flex;
+  gap: 1.25rem;
+  white-space: pre;
+  min-height: 1.55em;
 }
 
-/* The command types itself in on the way out of the tree, so the check is
-   visibly run against the paths just highlighted. The cursor is solid while
-   keys are landing — a terminal only blinks when it is waiting for you. */
-.caret {
-  display: none;
-  width: 0.55em;
-  height: 1.05em;
-  translate: 0 0.16em;
-  background: var(--color-accent);
+.doc-num {
+  width: 2ch;
+  flex: none;
+  text-align: right;
+  color: var(--color-subtle);
+  opacity: 0.55;
+  user-select: none;
 }
-[data-typing] .caret { display: inline-block; }
 
-/* The comment is not part of what gets typed; it arrives once the line is. */
-[data-note] { transition: opacity 260ms ease-out; }
-[data-typing] [data-note] { opacity: 0; }
+.doc-src { color: color-mix(in srgb, var(--color-fg) 82%, transparent); }
 
-@media (prefers-reduced-motion: reduce) {
-  .caret { display: none !important; }
-}
+/* Structure by weight and brightness. The semantic palette means error, warn
+   and pass everywhere else on this page; spending it on headings would make
+   those mean less. */
+.doc-heading .doc-src { color: var(--color-fg); font-weight: 600; }
+.md-mark { color: var(--color-subtle); opacity: 0.7; }
+.md-strong { color: var(--color-fg); }
+.md-code { color: var(--color-fg); }
+.doc-table .doc-src { color: var(--color-muted); }
 
 /* ---------------------------------------------------------------------------
    The closing scene: the same window, prose instead of output.
