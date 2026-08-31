@@ -1,0 +1,38 @@
+name: scenes
+
+# The demo is captured output, so it goes stale the moment agsync changes what
+# it prints. The rule count sat at "Fourteen" for three releases past
+# seventeen and nothing said a word. This is what says the word.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # agsync is a separate repository, so its releases cannot fail this build on
+  # their own. Once a day is the cost of that separation.
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  match:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Capture against the pinned agsync and compare
+        # No AGSYNC_REPO: the script clones the ref in .agsync-ref rather than
+        # whatever happens to be on the machine.
+        run: scripts/capture-scenes.sh --check
+
+      - name: Say which version drifted
+        if: failure()
+        run: |
+          echo "Captured against agsync $(cat .agsync-ref)." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Either agsync changed what it prints, or .agsync-ref should" >> "$GITHUB_STEP_SUMMARY"
+          echo "move to a newer release. Run scripts/capture-scenes.sh and" >> "$GITHUB_STEP_SUMMARY"
+          echo "commit src/data/scenes.ts." >> "$GITHUB_STEP_SUMMARY"

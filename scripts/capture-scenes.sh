@@ -3,7 +3,14 @@
 # it prints. Nothing in the demo is hand-written; if the CLI's output changes,
 # re-run this and the site changes with it.
 #
-#   AGSYNC_REPO=~/path/to/agsync scripts/capture-scenes.sh
+#   scripts/capture-scenes.sh            capture, and write src/data/scenes.ts
+#   scripts/capture-scenes.sh --check    capture, and fail if the committed
+#                                        scenes no longer match
+#
+# The version captured from is pinned in .agsync-ref, which is the one thing
+# both repositories can see. With no AGSYNC_REPO the script clones that ref;
+# with one, it uses that checkout as it stands, which is what you want while
+# working on the tool and not what CI should ever do.
 #
 # Optional: AGSYNC_REPLAY_REPO=~/path/to/a/memory/repo replays that repository's
 # real history instead of the project's own replay fixture.
@@ -16,15 +23,32 @@
 # cleanup trap plus a subshell deletes the work directory halfway through.
 set -euo pipefail
 
-REPO="${AGSYNC_REPO:-$HOME/Desktop/Agentsync}"
-AG="$REPO/.venv/bin/agsync"
+MODE="${1:-write}"
 OUT="$(cd "$(dirname "$0")/.." && pwd)"
+REF="$(tr -d '[:space:]' < "$OUT/.agsync-ref")"
 WORK="$(mktemp -d)"
 RAW="$WORK/raw"
 AGENT="$WORK/my-agent"
 mkdir -p "$RAW" "$AGENT"
 
-[ -x "$AG" ] || { echo "no agsync at $AG (set AGSYNC_REPO)" >&2; exit 1; }
+if [ -n "${AGSYNC_REPO:-}" ]; then
+  REPO="$AGSYNC_REPO"
+else
+  REPO="$WORK/agsync"
+  git clone --quiet --depth 1 --branch "$REF" \
+    https://github.com/gabrielft-me/agsync.git "$REPO"
+fi
+
+# The capture needs the repository, not just the package: the fixtures and the
+# replay history builder live in tests/.
+AG="$REPO/.venv/bin/agsync"
+if [ ! -x "$AG" ]; then
+  python3 -m venv "$REPO/.venv"
+  "$REPO/.venv/bin/pip" install --quiet -e "$REPO"
+fi
+
+VERSION="$("$AG" --version | awk '{print $NF}')"
+REQUIRES="$(grep -m1 '^requires-python' "$REPO/pyproject.toml" | sed 's/.*"\(.*\)"/\1/')"
 
 # run <id> <cwd> <command...> — pty-captures stdout+stderr and the exit status.
 run() {
@@ -104,6 +128,20 @@ fi
 run 4 "$(dirname "$TARGET")" "agsync replay $(basename "$TARGET")"
 run 5 "$(dirname "$TARGET")" "agsync replay $(basename "$TARGET") --first-seen"
 
-python3 "$OUT/scripts/build-scenes.py" "$RAW" "$OUT/src/data/scenes.ts"
-rm -rf "$WORK"
-echo "wrote src/data/scenes.ts"
+TARGET="$OUT/src/data/scenes.ts"
+[ "$MODE" = "--check" ] && TARGET="$WORK/scenes.ts"
+
+AGSYNC_REF="$REF" AGSYNC_VERSION="$VERSION" AGSYNC_REQUIRES="$REQUIRES" \
+  python3 "$OUT/scripts/build-scenes.py" "$RAW" "$TARGET"
+
+if [ "$MODE" = "--check" ]; then
+  python3 "$OUT/scripts/diff-scenes.py" "$OUT/src/data/scenes.ts" "$TARGET" || {
+    rm -rf "$WORK"
+    exit 1
+  }
+  rm -rf "$WORK"
+  echo "scenes match agsync $REF"
+else
+  rm -rf "$WORK"
+  echo "wrote src/data/scenes.ts from agsync $VERSION ($REF)"
+fi
