@@ -40,23 +40,23 @@ AGSYNC_REPO=~/path/to/agsync scripts/capture-scenes.sh
 ```
 
 That runs each command and writes `src/data/scenes.ts`. CLI commands go under a
-pty (`scripts/pty-run.py`) so they emit their real ANSI; installers do not,
-because they draw a spinner and erase it, which a terminal consumes and a
-capture keeps — piped, they print the settled lines a person is left with.
+pty (`scripts/pty-run.py`) so they emit their real ANSI; the installer does not,
+because it draws a spinner and erases it, which a terminal consumes and a
+capture keeps — piped, it prints the settled lines a person is left with.
 
-agsync is not on PyPI yet, so `uv tool install agsync` is captured against a
-local index built from the repository's own wheel. uv names neither the index
-nor the file anywhere in its output, so what is recorded is character-for-
-character what the published command prints — nothing about it is written by
-hand. Set `AGSYNC_INDEX=` (empty) once the name is live and it captures from
-PyPI proper.
+The install is captured against PyPI proper, cold: pip prints `Downloading` the
+first time and `Using cached` every time after, and the first is the one a
+visitor will actually get. The throwaway venv and the disabled cache that keep
+the capture off the caller's machine print nothing of their own, so the
+displayed command and the recorded output belong to each other.
 
-pip is deliberately absent until then. For a non-default index it prints
-`Looking in indexes` and `Processing <path>`, and the second is not merely
-extra — from PyPI that line reads `Downloading ...`, so there is no honest way
-to show it yet. The switcher reappears on its own when a second installer is
-added back to `installs` in `Screen.astro`. `src/lib/ansi.ts` turns the escapes into spans
-at build time. Never edit `scenes.ts` by hand.
+pip keeps its version notice, which is genuine output and renders as the dimmed
+extra it is. There is one installer, so the switcher hides itself; a second
+entry in `installs` in `Screen.astro` brings it back, and switching re-runs the
+scene with the one just picked.
+
+`src/lib/ansi.ts` turns the escapes into spans at build time. Never edit
+`scenes.ts` by hand.
 
 Scenes 4 and 5 (`agsync replay`) need a repository with history. By default the
 script builds agsync's own replay fixture — a real git repository made by real

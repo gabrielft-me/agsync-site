@@ -11,11 +11,11 @@ export interface Scene {
 
 export const scenes: Scene[] = [
   {
-    id: "install-uv",
-    command: "uv tool install agsync",
+    id: "install-pip",
+    command: "pip install agsync",
     note: null,
     exit: 0,
-    output: "Resolved 1 package in 3ms\nPrepared 1 package in 5ms\nInstalled 1 package in 2ms\n + agsync==0.1.0\nInstalled 1 executable: agsync",
+    output: "Collecting agsync\n  Downloading agsync-0.1.0-py3-none-any.whl.metadata (12 kB)\nDownloading agsync-0.1.0-py3-none-any.whl (34 kB)\nInstalling collected packages: agsync\nSuccessfully installed agsync-0.1.0\n\n[notice] A new release of pip is available: 24.2 -> 26.2.1\n[notice] To update, run: python3.12 -m pip install --upgrade pip",
   },
   {
     id: "check-rot",

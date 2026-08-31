@@ -44,38 +44,46 @@ const PLANS: Record<string, (scene: Scene) => Row[]> = {
   "check-rot"(scene) {
     const { spans, plain } = split(scene);
 
-    const files = new Set(["AGENTS.md", "memory/decisions.md", "tasks/README.md"]);
-    const wanted = [
-      /^\s*6\s+error\s+protocol-files-exist\b/,
-      /^\s*11\s+error\s+unique-decision-ids\b/,
-      /^\s*14\s+error\s+index-matches-files\b/,
-    ];
+    // How many findings stand, in the order the tool reported them. The rest
+    // are still there behind the elision, one click away.
+    const SHOW = 8;
 
-    const findings = plain.filter((l) => FINDING.test(l)).length;
-    const last = plain.findLastIndex((l) => FINDING.test(l));
-    assert(last > 0, "no findings in the check output");
+    const isFinding = (line: string) => FINDING.test(line);
+    const findings = plain.filter(isFinding).length;
+    assert(findings > SHOW, `only ${findings} findings; nothing to elide`);
+
+    const last = plain.findLastIndex(isFinding);
+    const keep = new Array(plain.length).fill(false);
+
+    let kept = 0;
+    for (let i = 0; i <= last; i++) {
+      if (isFinding(plain[i]!) && kept < SHOW) {
+        keep[i] = true;
+        kept++;
+        // The file a kept finding belongs to has to come with it.
+        for (let j = i - 1; j >= 0; j--) {
+          if (isFinding(plain[j]!)) break;
+          if (plain[j]!.trim()) {
+            keep[j] = true;
+            break;
+          }
+        }
+      }
+    }
+    assert(kept === SHOW, `expected ${SHOW} findings, kept ${kept}`);
 
     const rows: Row[] = [];
-    let kept = 0;
-
     for (let i = 0; i <= last; i++) {
-      const text = plain[i]!;
-      const keep = FINDING.test(text)
-        ? wanted.some((re) => re.test(text))
-        : files.has(text.trim());
-      rows.push(keep ? shown(spans[i]!) : extra(spans[i]!));
-      if (keep && FINDING.test(text)) kept++;
+      rows.push(keep[i] ? shown(spans[i]!) : extra(spans[i]!));
     }
-
-    assert(kept === wanted.length, `expected ${wanted.length} findings, kept ${kept}`);
-    rows.push({ kind: "elision", text: `${findings - kept} more findings` });
-
+    rows.push({ kind: "elision", text: `${findings - kept} more` });
     for (let i = last + 1; i < spans.length; i++) rows.push(shown(spans[i]!));
     return rows;
   },
 
-  // pip narrates every build step and names two temp directories on the way.
-  // The five lines it left-aligns are the ones that say what happened.
+  // pip indents the detail and left-aligns the outcome: what it collected,
+  // what it downloaded, what it installed. Those four lines are the story; the
+  // indented sizes and the version notice underneath are not.
   "install-pip"(scene) {
     const { spans, plain } = split(scene);
     const keep = (line: string) =>

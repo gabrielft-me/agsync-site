@@ -16,9 +16,9 @@ import { toPlain } from "../lib/ansi";
 import { trim } from "../lib/trim";
 import { links } from "../config";
 
-// Installing it. pip is absent until agsync is on PyPI — see the note in
-// scripts/capture-scenes.sh. Add it back here and the switcher returns with it.
-const installs = [{ id: "uv", label: "uv", scene: byId("install-uv") }];
+// Installing it. pip is the one every Python already has. A second entry here
+// is all it takes to bring the switcher back; one hides it.
+const installs = [{ id: "pip", label: "pip", scene: byId("install-pip") }];
 
 interface Step {
   scene: Scene;
@@ -580,6 +580,25 @@ const pad = (n: number) => String(n).padStart(2, "0");
       }
     };
 
+    // The exit status is the last thing a run produces, so when the run is
+    // played out it arrives last here too. The editor ran nothing, so it has no
+    // status and nothing to flash.
+    const settle = (body: HTMLElement) => {
+      const raw = body.dataset.exitCode;
+      if (raw === undefined) {
+        exitEl.textContent = "";
+        delete panel.dataset.flash;
+        return;
+      }
+      const code = Number(raw);
+      exitEl.textContent = `exit ${code}`;
+      exitEl.dataset.code = code === 0 ? "ok" : "err";
+
+      panel.dataset.flash = code === 0 ? "ok" : "err";
+      clearTimeout(flashTimer);
+      flashTimer = window.setTimeout(() => delete panel.dataset.flash, 260);
+    };
+
     const playScene = (body: HTMLElement, animate: boolean, done: () => void) => {
       stopTyping();
       // Coming back before the scene has finished fading: its pending reset is
@@ -700,25 +719,6 @@ const pad = (n: number) => String(n).padStart(2, "0");
 
       const body = bodies[n]!;
 
-      // The exit status is the last thing a run produces, so when the run is
-      // played out it arrives last here too. The tree ran nothing, so it has
-      // no status and nothing to flash.
-      const settle = () => {
-        const raw = body.dataset.exitCode;
-        if (raw === undefined) {
-          exitEl.textContent = "";
-          delete panel.dataset.flash;
-          return;
-        }
-        const code = Number(raw);
-        exitEl.textContent = `exit ${code}`;
-        exitEl.dataset.code = code === 0 ? "ok" : "err";
-
-        panel.dataset.flash = code === 0 ? "ok" : "err";
-        clearTimeout(flashTimer);
-        flashTimer = window.setTimeout(() => delete panel.dataset.flash, 260);
-      };
-
       // Leaving the editor is the one transition where the run is played out
       // in order: the command types itself in, the output prints under it, and
       // the status lands last. Arriving any other way, it is simply already
@@ -730,7 +730,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
         exitEl.textContent = "";
         delete panel.dataset.flash;
       }
-      playScene(body, plays, settle);
+      playScene(body, plays, () => settle(body));
 
       fit();
     };
@@ -794,16 +794,22 @@ const pad = (n: number) => String(n).padStart(2, "0");
     for (const tab of tabs) {
       tab.addEventListener("click", () => {
         const want = tab.dataset.installTab;
-        stopTyping();
         for (const other of tabs) {
           other.setAttribute("aria-pressed", String(other === tab));
         }
         for (const st of stack.querySelectorAll<HTMLElement>("[data-install]")) {
           st.hidden = st.dataset.install !== want;
-          st.removeAttribute("data-running");
-          st.removeAttribute("data-typing");
-          const el = st.querySelector<HTMLElement>("[data-cmd]");
-          if (el) el.textContent = el.dataset.cmd ?? "";
+        }
+
+        // Run it again with the one just picked. Switching used to stop the
+        // sequence where it stood, which left whoever did it looking at an
+        // install and never reaching the command that follows it.
+        const body = tab.closest<HTMLElement>(".scene-body");
+        if (body) {
+          delete panel.dataset.typist;
+          exitEl.textContent = "";
+          delete panel.dataset.flash;
+          playScene(body, true, () => settle(body));
         }
         fit();
       });

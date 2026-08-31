@@ -49,20 +49,14 @@ run_plain() {
 
 # Installing it.
 #
-# agsync is on PyPI, so both installers are captured against the real index and
-# the local-wheel scaffolding this used to need is gone with the reason for it.
-#
-# Both run cold, pointed at throwaway directories, and that is not tidiness:
-# pip prints "Downloading" the first time and "Using cached" every time after,
-# and the first is what someone arriving at this page actually gets. Neither the
-# cache path nor the temporary tool directory appears in either tool's output,
-# so what is recorded is character-for-character what the bare command prints on
-# a machine that has never seen the package.
-UV_CACHE_DIR="$WORK/uv/cache" UV_TOOL_DIR="$WORK/uv/dir" UV_TOOL_BIN_DIR="$WORK/uv/bin" \
-  run_plain install-uv "$WORK" "uv tool install agsync"
-
-# pip has no equivalent of `uv tool`: it installs into whichever environment it
-# is run from, so it gets a throwaway venv rather than the caller's.
+# agsync is on PyPI, so this is captured against the real index. It runs cold,
+# into a throwaway environment, and that is not tidiness: pip prints
+# "Downloading" the first time and "Using cached" every time after, and the
+# first is what someone arriving at this page actually gets. pip installs into
+# whichever environment it is run from, so it gets a venv of its own rather
+# than the caller's — and neither that path nor the disabled cache appears
+# anywhere in its output, so what is recorded is character-for-character what
+# the bare command prints on a machine that has never seen the package.
 python3 -m venv "$WORK/pip-env" >/dev/null
 run_plain install-pip "$WORK" "'$WORK/pip-env/bin/pip' install --no-cache-dir agsync"
 

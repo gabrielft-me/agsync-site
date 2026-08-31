@@ -9,10 +9,12 @@ import re
 import sys
 
 # id, the capture it comes from, the command as displayed, and the comment the
-# page types after it. The displayed command is what was run, with one
-# exception noted below.
+# page types after it. The displayed command is what was run, minus the flags
+# that exist only to keep the capture isolated — a throwaway venv, a cold
+# cache. None of them print anything of their own, so the displayed line and
+# the recorded output belong to each other.
 SCENES = [
-    ("install-uv", "install-uv", "uv tool install agsync", None),
+    ("install-pip", "install-pip", "pip install agsync", None),
     ("check-rot", "1", "agsync check", "your agent, mid-workflow"),
     ("check-clean", "2", "agsync check", "after someone fixed it"),
     ("rules", "3", "agsync rules", None),
